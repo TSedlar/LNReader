@@ -29,8 +29,10 @@ class DefaultNetClient extends BaseClient {
     request.headers['authority'] = request.url.host;
     request.headers['cache-control'] = 'max-age=0';
     request.headers['upgrade-insecure-requests'] = '1';
+    // request.headers['user-agent'] =
+    //     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36';
     request.headers['user-agent'] =
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36';
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0.3 Safari/605.1.15';
     request.headers['accept'] =
         'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3';
     request.headers['referer'] = request.url.origin;
@@ -41,7 +43,6 @@ class DefaultNetClient extends BaseClient {
 }
 
 class NetReader {
-
   // Reads the given url page with optional cookies
   static Future<WebResponse> readPage(
     String url, {
@@ -76,7 +77,7 @@ class NetReader {
     // Make request with headers
     return client.get(web.url, headers: headers).then((response) {
       // Conver body to sendable body
-      String body = response.body;//String.fromCharCodes(response.bodyBytes);
+      String body = response.body; //String.fromCharCodes(response.bodyBytes);
       // Send response to SendPort if available
       if (web.source != null) {
         web.source

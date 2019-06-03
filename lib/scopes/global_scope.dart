@@ -12,6 +12,8 @@ import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/novel/sources/novel_planet.dart';
 import 'package:ln_reader/util/observable.dart';
 
+final timeoutLength = Duration(seconds: 25);
+
 final Map<String, LNSource> sources = Map.fromIterable(
   [
     NovelPlanet(),
@@ -23,6 +25,7 @@ final Map<String, LNSource> sources = Map.fromIterable(
 final String _dataFile = '/persisted_data.json';
 bool _runningWatcher = false; // needs to be non-mutable publicly
 bool get runningWatcher => _runningWatcher;
+final homeContext = ObservableValue<BuildContext>();
 
 // START DEFAULT VALUES
 
@@ -170,7 +173,10 @@ readFromFile() async {
           // Set source readPreviews variable
           if (source['read_previews'] != null) {
             source['read_previews'].forEach((preview) {
-              sources[sourceId].readPreviews.val.add(LNPreview.fromJson(preview));
+              sources[sourceId]
+                  .readPreviews
+                  .val
+                  .add(LNPreview.fromJson(preview));
             });
           }
 

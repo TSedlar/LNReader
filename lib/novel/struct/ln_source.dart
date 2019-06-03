@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappbrowser/flutter_inappbrowser.dart';
 import 'package:html2md/html2md.dart' as html2md;
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
@@ -14,6 +15,7 @@ import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
+import 'package:ln_reader/views/widget/retry_widget.dart';
 
 abstract class LNSource {
   // repectfully allow only web view if a site owner asks
@@ -73,21 +75,22 @@ abstract class LNSource {
                   onTap: () {
                     globals.loading.val = true;
                     preview.loadExistingData();
-                    preview.source.parseEntry(preview).then((entry) {
-                      scheduleMicrotask(() {
-                        Navigator.pushNamed(
-                          context,
-                          '/entry',
-                          arguments: EntryArgs(
-                            preview: preview,
-                            entry: entry,
-                            nextChapter: preview.lastRead.seen
-                                ? entry.nextChapter(preview.lastRead.val)
-                                : null,
-                          ),
-                        );
-                      });
-                    });
+                    Retry.exec(
+                      context,
+                      () => preview.source.parseEntry(preview).then((entry) {
+                            Navigator.of(globals.homeContext.val).pushNamed(
+                              '/entry',
+                              arguments: EntryArgs(
+                                preview: preview,
+                                entry: entry,
+                                nextChapter: preview.lastRead.seen
+                                    ? entry.nextChapter(preview.lastRead.val)
+                                    : null,
+                              ),
+                            );
+                            globals.loading.val = false;
+                          }),
+                    );
                   },
                   child: Container(
                     margin: EdgeInsets.only(
@@ -160,8 +163,9 @@ abstract class LNSource {
                                               child: Center(
                                                 child: Text(
                                                   g,
-                                                  textScaleFactor: 0.7,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  textScaleFactor: 0.65,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ),
@@ -197,29 +201,47 @@ abstract class LNSource {
     globals.loading.val = true;
     if (readerMode) {
       // Push custom ReaderView
-      return makeReaderContent(chapter).then((source) {
-        print('converting source to markdown');
-        String markdown = html2md.convert(
-          source,
-          styleOptions: {'headingStyle': 'atx'},
-          ignore: ['script'],
-        );
-        print('converted to markdown');
-        return markdown;
-      }).then((markdown) {
-        print('loading ReaderView');
-        return Navigator.pushNamed(
-          context,
-          '/reader',
-          arguments: ReaderArgs(chapter: chapter, markdown: markdown),
-        );
-      });
+      return Retry.exec(
+        context,
+        () => makeReaderContent(chapter).then((source) {
+              print('converting source to markdown');
+              String markdown = html2md.convert(
+                source,
+                styleOptions: {'headingStyle': 'atx'},
+                ignore: ['script'],
+              );
+              print('converted to markdown');
+              return markdown;
+            }).then((markdown) {
+              print('loading ReaderView');
+              return Navigator.pushNamed(
+                context,
+                '/reader',
+                arguments: ReaderArgs(chapter: chapter, markdown: markdown),
+              );
+            }).timeout(globals.timeoutLength),
+      );
     } else {
-      // Push the GlobalWebView
-      return InAppBrowser().open(url: chapter.link, options: {
-        'hideUrlBar': true,
-        'toolbarTop': false,
-      }).then((x) {
+      return Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => Scaffold(
+                appBar: PreferredSize(
+                  preferredSize: Size.fromHeight(1.0),
+                  // make the appbar invisible so iOS can have
+                  // a colored status bar
+                  child: Opacity(opacity: 0.0, child: AppBar()),
+                ),
+                body: InAppWebView(
+                  initialUrl: chapter.link,
+                  initialOptions: {
+                    'hideUrlBar': true,
+                    'toolbarTop': false,
+                  },
+                ),
+              ),
+        ),
+      ).then((x) {
         globals.loading.val = false;
         return x;
       });

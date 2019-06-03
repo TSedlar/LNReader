@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:slide_container/slide_container.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
+import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/views/about_view.dart';
 import 'package:ln_reader/views/settings_view.dart';
@@ -10,7 +13,6 @@ import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/home_view.dart';
 import 'package:ln_reader/views/landing_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
-import 'package:modal_progress_hud/modal_progress_hud.dart';
 
 void main() async {
   // Start the watcher for global updates
@@ -35,6 +37,8 @@ class MainApplication extends StatefulWidget {
 
 class _MainApplication extends State<MainApplication>
     with WidgetsBindingObserver {
+  int _dCounter = 0;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     print('Current lifecycle state: ' + state.toString());
@@ -64,6 +68,7 @@ class _MainApplication extends State<MainApplication>
     });
 
     // Bind theme/load var for realtime changes
+    GlobalWebView.browser.bind(this);
     globals.theme.bind(this);
     globals.loading.bind(this);
   }
@@ -89,13 +94,9 @@ class _MainApplication extends State<MainApplication>
       initialRoute: '/',
       onGenerateRoute: (settings) {
         Widget displayWidget;
-        bool transition = true;
-        bool poppable = true;
         bool fullscreen = false;
         if (settings.name == '/') {
           displayWidget = LandingView();
-          poppable = false;
-          transition = false;
         } else if (settings.name == '/settings') {
           displayWidget = SettingsView();
         } else if (settings.name == '/about') {
@@ -108,9 +109,6 @@ class _MainApplication extends State<MainApplication>
             previews: args.previews,
             searchPreviews: args.searchPreviews,
           );
-          if (args.previews != null) {
-            poppable = false;
-          }
         } else if (settings.name == '/entry') {
           // Handle EntryView
           globals.loading.val = false;
@@ -131,29 +129,37 @@ class _MainApplication extends State<MainApplication>
         if (fullscreen) {
           SystemChrome.setEnabledSystemUIOverlays([]);
         } else {
-          SystemChrome.setEnabledSystemUIOverlays([SystemUiOverlay.top, SystemUiOverlay.bottom]);
+          SystemChrome.setEnabledSystemUIOverlays([
+            SystemUiOverlay.top,
+            SystemUiOverlay.bottom,
+          ]);
         }
 
         // Show loader while loading variable is set
         displayWidget = ModalProgressHUD(
           opacity: 1.0,
-          color: theme.accentColor,
+          color: Colors.green,//theme.accentColor,
           progressIndicator: Loader.makeIndicator(),
           inAsyncCall: globals.loading.val,
           child: displayWidget,
         );
 
-        // Make poppable or not
-        displayWidget = WillPopScope(
-          onWillPop: () => Future.value(poppable),
-          child: displayWidget,
-        );
+        Widget renderWidget = Stack(children: [
+          Opacity(opacity: 0.0, child: GlobalWebViewWidget()),
+          displayWidget,
+        ]);
 
-        if (transition) {
-          return CupertinoPageRoute(builder: (ctx) => displayWidget);
-        } else {
-          return MaterialPageRoute(builder: (ctx) => displayWidget);
-        }
+        // if (transition) {
+        return CupertinoPageRoute(
+          // maintainState: true,
+          builder: (ctx) => renderWidget,
+        );
+        // } else {
+        // return MaterialPageRoute(
+        //   maintainState: true,
+        //   builder: (ctx) => displayWidget,
+        // );
+        // }
       },
     );
   }

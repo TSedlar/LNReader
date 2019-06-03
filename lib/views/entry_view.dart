@@ -1,11 +1,9 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:share/share.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
@@ -133,7 +131,7 @@ class _EntryView extends State<EntryView> {
                       child: Center(
                         child: Text(
                           g,
-                          textScaleFactor: 0.6,
+                          textScaleFactor: 0.55,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),

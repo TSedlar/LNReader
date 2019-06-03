@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
+import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/home_view.dart';
+import 'package:ln_reader/views/widget/retry_widget.dart';
 
 class LandingView extends StatefulWidget {
   LandingView({Key key}) : super(key: key);
@@ -16,24 +19,31 @@ class _LandingView extends State<LandingView> {
   @override
   void initState() {
     super.initState();
-    scheduleMicrotask(() {
+    SchedulerBinding.instance.addPostFrameCallback((_) {
       globals.loading.val = true;
-      globals.source.val.parsePreviews().then((p) {
-        // Navigator.pop(context);
-        Navigator.pushNamed(
-          context,
-          '/home',
-          arguments: HomeArgs(
-            poppable: false,
-            previews: p,
-          ),
-        );
-      });
+      Retry.exec(
+        context,
+        () => globals.source.val.parsePreviews().then((p) {
+              globals.loading.val = false;
+              if (p == null || p.isEmpty) {
+                throw Error();
+              } else {
+                Navigator.of(context).pushReplacementNamed(
+                  '/home',
+                  arguments: HomeArgs(
+                    poppable: false,
+                    previews: p,
+                  ),
+                );
+              }
+            }).timeout(globals.timeoutLength),
+        escapable: false,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Loader.create(context);
+    return Center(child: Text('landing...')); //Loader.create(context);
   }
 }

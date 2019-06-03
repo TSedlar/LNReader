@@ -7,6 +7,7 @@ import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/sidebar_view.dart';
 import 'package:ln_reader/views/widget/custom_tab_view.dart';
+import 'package:ln_reader/views/widget/retry_widget.dart';
 
 class HomeArgs {
   HomeArgs({this.poppable, this.previews, this.searchPreviews});
@@ -45,14 +46,22 @@ class _HomeView extends State<HomeView> {
     if (query != null || forceSearch) {
       query = (query != null ? query.toLowerCase() : null);
       globals.loading.val = true;
-      globals.source.val
-          .search(query, globals.source.val.selectedGenres.val)
-          .then((p) => _renavigate(searchPreviews: p));
+      Retry.exec(
+        context,
+        () => globals.source.val
+            .search(query, globals.source.val.selectedGenres.val)
+            .then((p) => _renavigate(searchPreviews: p))
+            .timeout(globals.timeoutLength),
+      );
     } else {
       globals.loading.val = true;
-      globals.source.val.parsePreviews().then((p) {
-        _renavigate(previews: p);
-      });
+      Retry.exec(
+        context,
+        () => globals.source.val
+            .parsePreviews()
+            .then((p) => _renavigate(previews: p))
+            .timeout(globals.timeoutLength),
+      );
     }
   }
 
@@ -105,6 +114,7 @@ class _HomeView extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
+    globals.homeContext.val = context;
     return globals.loading.val
         ? Loader.create(context)
         : Scaffold(
@@ -130,7 +140,8 @@ class _HomeView extends State<HomeView> {
                     : DropdownButtonHideUnderline(
                         child: Theme(
                           data: Theme.of(context).copyWith(
-                            canvasColor: ColorTool.shade(Theme.of(context).primaryColor, 0.10),
+                            canvasColor: ColorTool.shade(
+                                Theme.of(context).primaryColor, 0.10),
                           ),
                           child: DropdownButton(
                             isExpanded: true,
