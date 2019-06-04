@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/net/global_web_view.dart';
@@ -61,7 +62,7 @@ class _SidebarView extends State<SidebarView> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        CupertinoPageRoute(
                           builder: (context) =>
                               PreviewListView(favorites: true),
                         ),
@@ -75,7 +76,7 @@ class _SidebarView extends State<SidebarView> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
+                        CupertinoPageRoute(
                           builder: (context) => PreviewListView(
                                 favorites: false,
                               ),

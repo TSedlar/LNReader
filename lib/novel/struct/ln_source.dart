@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:html2md/html2md.dart' as html2md;
@@ -15,6 +17,7 @@ import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
 import 'package:ln_reader/views/widget/retry_widget.dart';
+import 'package:slide_container/slide_container.dart';
 
 abstract class LNSource {
   // repectfully allow only web view if a site owner asks
@@ -213,31 +216,26 @@ abstract class LNSource {
               return markdown;
             }).then((markdown) {
               print('loading ReaderView');
-              return Navigator.pushNamed(
-                context,
+              return Navigator.of(globals.homeContext.val).pushNamed(
                 '/reader',
                 arguments: ReaderArgs(chapter: chapter, markdown: markdown),
               );
             }).timeout(globals.timeoutLength),
       );
     } else {
-      return Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (ctx) => Scaffold(
-                appBar: PreferredSize(
-                  preferredSize: Size.fromHeight(1.0),
-                  // make the appbar invisible so iOS can have
-                  // a colored status bar
-                  child: Opacity(opacity: 0.0, child: AppBar()),
-                ),
-                body: WebviewScaffold(
-                  url: chapter.link,
-                  withJavascript: true,
-                ),
-              ),
-        ),
-      ).then((x) {
+      return Navigator.of(globals.homeContext.val).push(CupertinoPageRoute(
+        builder: (ctx) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(chapter.title),
+            ),
+            body: WebviewScaffold(
+              url: chapter.link,
+              withJavascript: true,
+            ),
+          );
+        },
+      )).then((x) {
         globals.loading.val = false;
         return x;
       });

@@ -44,6 +44,6 @@ class _LandingView extends State<LandingView> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('landing...')); //Loader.create(context);
+    return Loader.create(context);
   }
 }
