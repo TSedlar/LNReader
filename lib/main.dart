@@ -138,21 +138,16 @@ class _MainApplication extends State<MainApplication>
         // Show loader while loading variable is set
         displayWidget = ModalProgressHUD(
           opacity: 1.0,
-          color: Colors.green,//theme.accentColor,
+          color: theme.accentColor,
           progressIndicator: Loader.makeIndicator(),
           inAsyncCall: globals.loading.val,
           child: displayWidget,
         );
 
-        Widget renderWidget = Stack(children: [
-          Opacity(opacity: 0.0, child: GlobalWebViewWidget()),
-          displayWidget,
-        ]);
-
         // if (transition) {
         return CupertinoPageRoute(
           // maintainState: true,
-          builder: (ctx) => renderWidget,
+          builder: (ctx) => displayWidget,
         );
         // } else {
         // return MaterialPageRoute(

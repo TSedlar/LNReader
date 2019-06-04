@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_inappbrowser/flutter_inappbrowser.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:html2md/html2md.dart' as html2md;
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
@@ -232,12 +231,9 @@ abstract class LNSource {
                   // a colored status bar
                   child: Opacity(opacity: 0.0, child: AppBar()),
                 ),
-                body: InAppWebView(
-                  initialUrl: chapter.link,
-                  initialOptions: {
-                    'hideUrlBar': true,
-                    'toolbarTop': false,
-                  },
+                body: WebviewScaffold(
+                  url: chapter.link,
+                  withJavascript: true,
                 ),
               ),
         ),

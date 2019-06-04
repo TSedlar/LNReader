@@ -20,8 +20,7 @@ dependencies:
   battery_indicator: ^0.0.2
   sticky_headers: ^0.1.8
   slide_container: ^1.0.7
-  web_vuw: ^0.2.3
-  flutter_inappbrowser: ^1.2.0
+  flutter_webview_plugin: ^0.3.5
   flutter_markdown: ^0.2.0
   flutter_speed_dial: ^1.1.2
   cupertino_icons: ^0.1.2
