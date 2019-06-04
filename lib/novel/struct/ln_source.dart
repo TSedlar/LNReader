@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
@@ -16,8 +15,8 @@ import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
+import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/widget/retry_widget.dart';
-import 'package:slide_container/slide_container.dart';
 
 abstract class LNSource {
   // repectfully allow only web view if a site owner asks
@@ -206,21 +205,23 @@ abstract class LNSource {
       return Retry.exec(
         context,
         () => makeReaderContent(chapter).then((source) {
-              print('converting source to markdown');
+              Loader.text.val = 'Converting to markdown...';
               String markdown = html2md.convert(
                 source,
                 styleOptions: {'headingStyle': 'atx'},
                 ignore: ['script'],
               );
-              print('converted to markdown');
+              Loader.text.val = 'Converted!';
               return markdown;
             }).then((markdown) {
-              print('loading ReaderView');
-              return Navigator.of(globals.homeContext.val).pushNamed(
+              Loader.text.val = 'Loading ReaderView!';
+              Navigator.of(globals.homeContext.val).pushNamed(
                 '/reader',
                 arguments: ReaderArgs(chapter: chapter, markdown: markdown),
               );
-            }).timeout(globals.timeoutLength),
+              // return a value to prevent timeout waiting for nav#pop
+              return Future.value(true);
+            }),
       );
     } else {
       return Navigator.of(globals.homeContext.val).push(CupertinoPageRoute(

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:slide_container/slide_container.dart';
+import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:modal_progress_hud/modal_progress_hud.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/net/global_web_view.dart';
@@ -37,7 +37,6 @@ class MainApplication extends StatefulWidget {
 
 class _MainApplication extends State<MainApplication>
     with WidgetsBindingObserver {
-  int _dCounter = 0;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -71,12 +70,25 @@ class _MainApplication extends State<MainApplication>
     GlobalWebView.browser.bind(this);
     globals.theme.bind(this);
     globals.loading.bind(this);
+
+    // Clear the loading text when not loading
+    globals.loading.listen((loadingValue) {
+      if (!loadingValue) {
+        Loader.text.val = null;
+      }
+    });
   }
 
   @override
   void dispose() {
     // Remove lifecycle watcher
     WidgetsBinding.instance.removeObserver(this);
+
+    // Destroy the background webview
+    FlutterWebviewPlugin()
+      ..stopLoading()
+      ..close()
+      ..dispose();
 
     // Dispose
     super.dispose();
@@ -93,9 +105,11 @@ class _MainApplication extends State<MainApplication>
       theme: theme,
       initialRoute: '/',
       onGenerateRoute: (settings) {
+        bool transition = true;
         Widget displayWidget;
         bool fullscreen = false;
         if (settings.name == '/') {
+          transition = false;
           displayWidget = LandingView();
         } else if (settings.name == '/settings') {
           displayWidget = SettingsView();
@@ -139,22 +153,20 @@ class _MainApplication extends State<MainApplication>
         displayWidget = ModalProgressHUD(
           opacity: 1.0,
           color: theme.accentColor,
-          progressIndicator: Loader.makeIndicator(),
+          progressIndicator: Loader.create(context, theme),
           inAsyncCall: globals.loading.val,
           child: displayWidget,
         );
 
-        // if (transition) {
-        return CupertinoPageRoute(
-          // maintainState: true,
-          builder: (ctx) => displayWidget,
-        );
-        // } else {
-        // return MaterialPageRoute(
-        //   maintainState: true,
-        //   builder: (ctx) => displayWidget,
-        // );
-        // }
+        if (transition) {
+          return CupertinoPageRoute(
+            builder: (ctx) => displayWidget,
+          );
+        } else {
+          return MaterialPageRoute(
+            builder: (ctx) => displayWidget,
+          );
+        }
       },
     );
   }

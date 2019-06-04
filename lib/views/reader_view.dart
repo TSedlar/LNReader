@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -56,20 +57,36 @@ class _ReaderView extends State<ReaderView> {
       controller.dispose();
     }
 
-    controller = ScrollController(initialScrollOffset: startOffset);
+    controller = ScrollController();
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
+      // debug offsets
+      print(
+        'start offset = $startOffset / ${controller.position.maxScrollExtent}',
+      );
+
+      // initialOffset does not have the correct position
+      // jump when it's available instead.
+      controller.jumpTo(startOffset);
+
+      // Set the scroll length to full length
       widget.chapter.scrollLength = controller.position.maxScrollExtent;
 
-      percentRead =
-          (controller.offset / controller.position.maxScrollExtent) * 100.0;
+      setState(() {
+        // Set initial percent read amount
+        percentRead =
+            (controller.offset / controller.position.maxScrollExtent) * 100.0;
+      });
 
+      // Create scroll listener to update data
       controller.addListener(() {
-        widget.chapter.lastPosition = controller.offset;
+        print('chapter#lastPos -> ${controller.offset}');
+        widget.chapter.lastPosition = max(0, controller.offset);
         widget.chapter.scrollLength = controller.position.maxScrollExtent;
         setState(() {
-          percentRead =
-              (controller.offset / controller.position.maxScrollExtent) * 100.0;
+          final scrollAmt =
+              widget.chapter.lastPosition / controller.position.maxScrollExtent;
+          percentRead = scrollAmt * 100.0;
         });
       });
 

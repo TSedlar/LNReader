@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 
 class AboutView extends StatelessWidget {
@@ -16,8 +15,8 @@ class AboutView extends StatelessWidget {
     'modal_progress_hud ^0.1.3': 'https://pub.dev/packages/modal_progress_hud',
     'battery_indicator ^0.0.2': 'https://pub.dev/packages/battery_indicator',
     'sticky_headers ^0.1.8': 'https://pub.dev/packages/sticky_headers',
-    'flutter_inappbrowser ^1.2.0':
-        'https://pub.dev/packages/flutter_inappbrowser',
+    'flutter_webview_plugin ^0.3.5':
+        'https://pub.dev/packages/flutter_webview_plugin',
     'flutter_markdown ^0.2.0': 'https://pub.dev/packages/flutter_markdown',
     'flutter_speed_dial ^1.1.2': 'https://pub.dev/packages/flutter_speed_dial',
   };
@@ -85,7 +84,8 @@ class AboutView extends StatelessWidget {
                             bottom: 8.0,
                           ),
                           icon: Icon(Icons.launch, color: fg.color),
-                          onPressed: () => GlobalWebView.launchExternal(context, dependencies[key]),
+                          onPressed: () => GlobalWebView.launchExternal(
+                              context, dependencies[key]),
                         ),
                       ))
                   .toList()),
@@ -123,8 +123,8 @@ class AboutView extends StatelessWidget {
                             bottom: 8.0,
                           ),
                           icon: Icon(Icons.launch, color: fg.color),
-                          onPressed: () =>
-                              GlobalWebView.launchExternal(context, globals.sources[key].baseURL),
+                          onPressed: () => GlobalWebView.launchExternal(
+                              context, globals.sources[key].baseURL),
                         ),
                       ))
                   .toList()),
@@ -136,7 +136,8 @@ class AboutView extends StatelessWidget {
               trailing: IconButton(
                 padding: EdgeInsets.only(left: 24.0, top: 8.0, bottom: 8.0),
                 icon: Icon(Icons.launch, color: fg.color),
-                onPressed: () => GlobalWebView.launchExternal(context, githubURL),
+                onPressed: () =>
+                    GlobalWebView.launchExternal(context, githubURL),
               ),
             ),
           ),

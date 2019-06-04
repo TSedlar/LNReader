@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
-import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/home_view.dart';
 import 'package:ln_reader/views/widget/retry_widget.dart';
@@ -35,8 +34,10 @@ class _LandingView extends State<LandingView> {
                     previews: p,
                   ),
                 );
+                // return a value to prevent timeout waiting for nav#pop
+                return Future.value(true);
               }
-            }).timeout(globals.timeoutLength),
+            }),
         escapable: false,
       );
     });

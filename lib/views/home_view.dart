@@ -48,20 +48,24 @@ class _HomeView extends State<HomeView> {
       globals.loading.val = true;
       Retry.exec(
         context,
-        () => globals.source.val
-            .search(query, globals.source.val.selectedGenres.val)
-            .then((p) => _renavigate(searchPreviews: p))
-            .timeout(globals.timeoutLength),
+        () {
+          final genres = globals.source.val.selectedGenres.val;
+          return globals.source.val.search(query, genres).then((p) {
+            _renavigate(searchPreviews: p);
+            // return a value to prevent timeout waiting for nav#pop
+            return Future.value(true);
+          });
+        },
       );
     } else {
       globals.loading.val = true;
       Retry.exec(
-        context,
-        () => globals.source.val
-            .parsePreviews()
-            .then((p) => _renavigate(previews: p))
-            .timeout(globals.timeoutLength),
-      );
+          context,
+          () => globals.source.val.parsePreviews().then((p) {
+                _renavigate(previews: p);
+                // return a value to prevent timeout waiting for nav#pop
+                return Future.value(true);
+              }));
     }
   }
 

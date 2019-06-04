@@ -15,7 +15,7 @@ class Retry extends StatefulWidget {
     bool fixLoader = true,
     bool escapable = true,
   }) {
-    return future().catchError((err) {
+    final doError = () {
       bool retrying = false;
       showDialog(
         context: context,
@@ -51,7 +51,11 @@ class Retry extends StatefulWidget {
           globals.loading.val = false;
         }
       });
-    });
+    };
+
+    return future().catchError((_) {
+      doError();
+    }).timeout(globals.timeoutLength, onTimeout: doError);
   }
 }
 

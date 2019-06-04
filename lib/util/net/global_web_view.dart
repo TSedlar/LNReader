@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:ln_reader/util/string_normalizer.dart';
+import 'package:ln_reader/views/widget/loader.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/net/net_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 
@@ -68,9 +68,8 @@ class GlobalWebView {
       if (res.headers != null &&
           'cloudflare' == res.headers['server'] &&
           'close' == res.headers['connection']) {
-        print(res.body);
         // Handle using+caching cloudflare cookies
-        print('fetching cloudflare cookies..');
+        Loader.text.val = 'Fetching page cookies...';
         return _readCloudflarePage(url, cookies, useCookieCache);
       } else {
         // There is no issue, return the content
@@ -79,13 +78,15 @@ class GlobalWebView {
     });
   }
 
+  static bool _launched = false;
+
   // Handles cloudflare challenge through a webview
   static Future<String> _readCloudflarePage(
     String url,
     Map<String, String> baseCookies,
     bool useCookieCache,
   ) {
-    print('started..');
+    Loader.text.val = 'Started cookie grabbing...';
 
     // The key used in the cookie cache
     final host = Uri.parse(url).host;
@@ -93,17 +94,13 @@ class GlobalWebView {
     // Use this as the future to return
     final sourceCompleter = Completer<String>();
 
+    // subscribable cookie listener
     final cookieSub = StreamController<Map>.broadcast();
 
-    // Ensure a clean plugin
-    FlutterWebviewPlugin()
-      ..stopLoading()
-      ..cleanCookies()
-      ..close()
-      ..dispose();
-
+    // Get the singleton webview
     final plugin = FlutterWebviewPlugin();
 
+    // Setup listener variables
     bool startedLoad = false;
     bool processingSource = false;
 
@@ -112,11 +109,12 @@ class GlobalWebView {
         if (state.type == WebViewState.startLoad) {
           if (!cookieSub.isClosed) {
             startedLoad = true;
-            print('retrieving cookies..');
+            Loader.text.val = 'Retrieving cookies...';
             final cookies = await _platform.invokeMapMethod<String, String>(
               'getCookies',
               url,
             );
+            Loader.text.val = 'Retrieved cookies';
             print('retrieved cookies: ' + cookies.toString());
             cookieSub.add(cookies);
           }
@@ -132,39 +130,44 @@ class GlobalWebView {
         if (!processingSource &&
             (state == 'interactive' || state == 'complete')) {
           processingSource = true;
-          print('found source with webview');
+          Loader.text.val = 'Found source part via webview';
           final source = StringNormalizer.normalize(
             await plugin.evalJavascript('document.body.innerHTML'),
           );
           if (!_matchesCloudflare(source)) {
             if (!sourceCompleter.isCompleted) {
-              print('source is correct');
+              Loader.text.val = 'Source grabbed!';
               cookieSub.close();
               sourceCompleter.complete(source);
-              plugin.stopLoading();
-              plugin.close();
-              plugin.dispose();
+              // keep things lightweight as this is in the background.
+              plugin.reloadUrl('about:blank');
             }
           } else {
-            print('source matched cloudflare..');
+            Loader.text.val = 'Source matched loading page...';
           }
           processingSource = false;
         }
       }
     });
 
-    plugin.launch(
-      url,
-      withJavascript: true,
-      hidden: true,
-    );
+    if (!_launched) {
+      _launched = true;
+      // Launch to about:blank as it's lightweight
+      plugin.launch(
+        'about:blank',
+        withJavascript: true,
+        hidden: true,
+      );
+    }
+
+    plugin.reloadUrl(url);
 
     cookieSub.stream.listen((cookies) {
       if (cookies != null &&
           cookies.containsKey('__cfduid') &&
           cookies.containsKey('cf_clearance')) {
         cookieSub.close();
-        print('cookies were obtained');
+        Loader.text.val = 'Cookies obtained';
         // Update the global cookie cache
         if (useCookieCache) {
           final Map<String, String> mergedCookies = {};
@@ -177,29 +180,26 @@ class GlobalWebView {
           '__cfduid': cookies['__cfduid'],
           'cf_clearance': cookies['cf_clearance'],
         }).then((res) {
-          print('page was read...');
+          Loader.text.val = 'Read page source';
           // Only return the source if it's not another cloudflare challenge
           // which would mean the cookies are invalid
           if (!_matchesCloudflare(res.body)) {
             if (!sourceCompleter.isCompleted) {
-              print('Page source retrieved quickly');
-              plugin.stopLoading();
-              plugin.close();
-              plugin.dispose();
+              Loader.text.val = 'Found source via NetReader';
+              // keep things lightweight as this is in the background.
+              plugin.reloadUrl('about:blank');
               sourceCompleter.complete(res.body);
             }
           } else {
-            print('cookies did not work, waiting for webview#finishLoad');
+            Loader.text.val = 'Cookies invalid \n Waiting for webview source';
           }
         });
       }
     });
 
-    return sourceCompleter.future.timeout(globals.timeoutLength, onTimeout: () {
-      print('timed out..');
-      plugin.close();
-      plugin.dispose();
-      return null;
+    return sourceCompleter.future.catchError((err) {
+      // keep things lightweight as this is in the background.
+      plugin.reloadUrl('about:blank');
     });
   }
 }

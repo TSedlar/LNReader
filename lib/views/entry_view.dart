@@ -147,7 +147,9 @@ class _EntryView extends State<EntryView> {
   }
 
   Future _openChapter(LNChapter chapter) {
-    if (widget.preview.lastRead.seen) {
+    // Ensure chapter is seen and not the same as the one chosen to open
+    if (widget.preview.lastRead.seen &&
+        widget.preview.lastRead.val.link != chapter.link) {
       widget.preview.lastRead.val.lastPosition =
           widget.preview.lastRead.val.scrollLength;
     }
