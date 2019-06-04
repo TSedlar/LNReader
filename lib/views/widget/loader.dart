@@ -49,15 +49,15 @@ class _LoaderScaffold extends State<LoaderScaffold> {
             children: [
               Padding(
                 padding: EdgeInsets.only(bottom: 20.0),
-                child: Text(
-                  Loader.text.seen ? Loader.text.val : 'Loading...',
-                  style: widget.theme != null
-                      ? widget.theme.textTheme.subhead
-                      : Theme.of(widget.buildContext).textTheme.subhead,
-                  textAlign: TextAlign.center,
-                ),
+                child: Loader.makeIndicator(widget.theme),
               ),
-              Loader.makeIndicator(widget.theme),
+              Text(
+                Loader.text.seen ? Loader.text.val : 'Loading...',
+                style: widget.theme != null
+                    ? widget.theme.textTheme.subhead
+                    : Theme.of(widget.buildContext).textTheme.subhead,
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
