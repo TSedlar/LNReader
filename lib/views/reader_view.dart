@@ -80,7 +80,6 @@ class _ReaderView extends State<ReaderView> {
 
       // Create scroll listener to update data
       controller.addListener(() {
-        print('chapter#lastPos -> ${controller.offset}');
         widget.chapter.lastPosition = max(0, controller.offset);
         widget.chapter.scrollLength = controller.position.maxScrollExtent;
         setState(() {

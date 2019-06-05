@@ -23,36 +23,22 @@ class _LandingView extends State<LandingView> {
       Retry.exec(
         context,
         () {
-          final genres = globals.source.val.selectedGenres.val;
-          return globals.source.val.search('alone', genres).then((p) {
-            Navigator.pushNamed(
-              context,
-              '/home',
-              arguments: HomeArgs(
-                poppable: false,
-                previews: null,
-                searchPreviews: p,
-              ),
-            );
-            // return a value to prevent timeout waiting for nav#pop
-            return Future.value(true);
-          });
-          // globals.source.val.parsePreviews().then((p) {
-          //     globals.loading.val = false;
-          //     if (p == null || p.isEmpty) {
-          //       throw Error();
-          //     } else {
-          //       Navigator.of(context).pushReplacementNamed(
-          //         '/home',
-          //         arguments: HomeArgs(
-          //           poppable: false,
-          //           previews: p,
-          //         ),
-          //       );
-          //       // return a value to prevent timeout waiting for nav#pop
-          //       return Future.value(true);
-          //     }
-          //   });
+          return globals.source.val.parsePreviews().then((p) {
+              globals.loading.val = false;
+              if (p == null || p.isEmpty) {
+                throw Error();
+              } else {
+                Navigator.of(context).pushReplacementNamed(
+                  '/home',
+                  arguments: HomeArgs(
+                    poppable: false,
+                    previews: p,
+                  ),
+                );
+                // return a value to prevent timeout waiting for nav#pop
+                return Future.value(true);
+              }
+            });
         },
         escapable: false,
       );

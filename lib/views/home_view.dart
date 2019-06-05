@@ -72,16 +72,21 @@ class _HomeView extends State<HomeView> {
   Future _renavigate({
     Map<String, List<LNPreview>> previews,
     List<LNPreview> searchPreviews,
-  }) =>
-      Navigator.pushNamed(
-        context,
-        '/home',
-        arguments: HomeArgs(
-          poppable: widget.previews != null || widget.searchPreviews != null,
-          previews: previews,
-          searchPreviews: searchPreviews,
-        ),
-      );
+  }) {
+    if (widget.searchPreviews != null) {
+      // Make it so that there's not various search pages
+      Navigator.pop(context);
+    }
+    return Navigator.pushNamed(
+      context,
+      '/home',
+      arguments: HomeArgs(
+        poppable: widget.previews != null || widget.searchPreviews != null,
+        previews: previews,
+        searchPreviews: searchPreviews,
+      ),
+    );
+  }
 
   _showCategoryDialog() {
     final selectedGenres = globals.source.val.selectedGenres.val;
@@ -123,7 +128,8 @@ class _HomeView extends State<HomeView> {
         ? Loader.create(context)
         : Scaffold(
             backgroundColor: Theme.of(context).backgroundColor,
-            drawer: SidebarView(),
+            // only show the drawer if it isn't a search
+            drawer: widget.previews != null ? SidebarView() : null,
             appBar: PreferredSize(
               preferredSize: Size.fromHeight(50.0),
               child: AppBar(

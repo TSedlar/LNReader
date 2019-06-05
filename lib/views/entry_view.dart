@@ -165,14 +165,13 @@ class _EntryView extends State<EntryView> {
   }
 
   Widget _makeChapterCard(LNChapter chapter, {String title, String subtitle}) {
-    bool read = widget.preview.lastRead.seen &&
-        chapter.index >= widget.preview.lastRead.val.index;
+    final nextChapter = widget.preview.lastRead.seen
+        ? (widget.preview.lastRead.val.nearCompletion()
+            ? widget.entry.nextChapter(widget.preview.lastRead.val)
+            : widget.preview.lastRead.val)
+        : null;
 
-    if (globals.readerMode.val &&
-        widget.preview.lastRead.seen &&
-        chapter.index == widget.preview.lastRead.val.index) {
-      read = chapter.nearCompletion();
-    }
+    bool read = nextChapter != null && chapter.index > nextChapter.index;
 
     if (title == null) {
       title = chapter.title;

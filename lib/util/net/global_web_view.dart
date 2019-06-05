@@ -88,6 +88,9 @@ class GlobalWebView {
   ) {
     Loader.text.val = 'Started cookie grabbing...';
 
+    // Normalize URL
+    url = Uri.encodeFull(url.replaceAll(' ', '%20'));
+
     // The key used in the cookie cache
     final host = Uri.parse(url).host;
 
@@ -112,8 +115,8 @@ class GlobalWebView {
     bool processingSource = false;
 
     plugin.onStateChanged.listen((state) async {
-      Loader.text.val = 'Ensuring state change on URL';
-      if (state.url == Uri.encodeFull(url) && !cookieSub.isClosed) {
+      Loader.text.val = 'Confirming URL';
+      if (state.url == url && !cookieSub.isClosed) {
         if (state.type == WebViewState.startLoad) {
           Loader.text.val = 'Started web load';
           if (!cookieSub.isClosed) {
@@ -209,7 +212,7 @@ class GlobalWebView {
                 sourceCompleter.complete(StringNormalizer.normalize(res.body));
               }
             } else {
-              Loader.text.val = 'Cookies invalid \n Waiting for webview source';
+              Loader.text.val = 'Cookies out of date \n Waiting for webview source';
             }
           }
         });
