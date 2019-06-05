@@ -15,10 +15,10 @@ class StringNormalizer {
     // Replace basic raw symbols
     str = str.replaceAll(r'\"', '"').replaceAll(r'\n', '\n');
     // Replace raw unicode symbols
-    for (int i = 32; i <= 255; i++) {
+    for (int i = 0; i <= 255; i++) {
       // Convert number to hex code (003c)
       String hexcode = i.toRadixString(16).padLeft(4, '0');
-      // Check if the character is a control character, do not represent it if so
+      // Replace with the real character
       String replacement = String.fromCharCode(int.parse('0x$hexcode'));
       // lower case unicode \u003c
       String lowUnicode = '\\u$hexcode';
