@@ -37,7 +37,6 @@ class MainApplication extends StatefulWidget {
 
 class _MainApplication extends State<MainApplication>
     with WidgetsBindingObserver {
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     print('Current lifecycle state: ' + state.toString());
@@ -97,6 +96,9 @@ class _MainApplication extends State<MainApplication>
   @override
   Widget build(BuildContext context) {
     final theme = globals.createColorTheme();
+
+    // Portrait mode only -- maybe allow tablets to have landscape in the future?
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
     // Create the application
     return MaterialApp(
