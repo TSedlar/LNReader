@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/string_normalizer.dart';
 import 'package:ln_reader/views/widget/loader.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ln_reader/util/net/net_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 
@@ -64,18 +65,34 @@ class GlobalWebView {
     }
 
     // Read the page with cookies
-    return NetReader.readPageInBackground(url, cookies: cookies).then((res) {
+    final sourceCompleter = Completer<String>();
+
+    NetReader.readPageInBackground(
+      url,
+      cookies: cookies,
+      timeout: globals.timeoutLength,
+    ).then((res) {
       if (res.headers != null &&
           'cloudflare' == res.headers['server'] &&
           'close' == res.headers['connection']) {
         // Handle using+caching cloudflare cookies
         Loader.text.val = 'Fetching page cookies...';
-        return _readCloudflarePage(url, cookies, useCookieCache);
+        sourceCompleter.complete(
+          _readCloudflarePage(url, cookies, useCookieCache),
+        );
       } else {
         // There is no issue, return the content
-        return res.body;
+        sourceCompleter.complete(res.body);
       }
+    }).catchError((err) {
+      print('failed to read source');
+      sourceCompleter.complete(null);
+      return err;
+    }).timeout(globals.timeoutLength, onTimeout: () {
+      sourceCompleter.complete(null);
     });
+
+    return sourceCompleter.future;
   }
 
   static bool _launched = false;
@@ -113,10 +130,12 @@ class GlobalWebView {
     // Setup listener variables
     bool startedLoad = false;
     bool processingSource = false;
+    bool timedOut = false;
 
     plugin.onStateChanged.listen((state) async {
       Loader.text.val = 'Confirming URL';
-      if (state.url == url && !cookieSub.isClosed) {
+      if (state.url == url && !cookieSub.isClosed && !timedOut) {
+        print('state: ${state.url} -> ${state.type} / ${state.navigationType}');
         if (state.type == WebViewState.startLoad) {
           Loader.text.val = 'Started web load';
           if (!cookieSub.isClosed) {
@@ -130,12 +149,25 @@ class GlobalWebView {
             print('retrieved cookies: ' + cookies.toString());
             cookieSub.add(cookies);
           }
+        } else if (state.type == WebViewState.finishLoad) {
+          if (!cookieSub.isClosed) {
+            cookieSub.close();
+          }
+          Loader.text.val = 'Sourced during finishLoad';
+          plugin.evalJavascript('document.body.innerHTML').then((src) {
+            timedOut = true;
+            if (!cookieSub.isClosed) {
+              cookieSub.close();
+            }
+            plugin.reloadUrl('about:blank');
+            sourceCompleter.complete(src);
+          });
         }
       }
     });
 
     plugin.onProgressChanged.listen((progress) async {
-      if (startedLoad) {
+      if (startedLoad && !timedOut) {
         final state = StringNormalizer.normalize(
           await plugin.evalJavascript('document.readyState'),
         );
@@ -185,7 +217,8 @@ class GlobalWebView {
     cookieSub.stream.listen((cookies) {
       if (cookies != null &&
           cookies.containsKey('__cfduid') &&
-          cookies.containsKey('cf_clearance')) {
+          cookies.containsKey('cf_clearance') &&
+          !timedOut) {
         cookieSub.close();
         Loader.text.val = 'Cookies obtained';
         // Update the global cookie cache
@@ -199,29 +232,51 @@ class GlobalWebView {
         NetReader.readPage(url, cookies: {
           '__cfduid': cookies['__cfduid'],
           'cf_clearance': cookies['cf_clearance'],
+        }).timeout(globals.timeoutLength, onTimeout: () {
+          timedOut = true;
+          return null;
         }).then((res) {
-          Loader.text.val = 'Read page source';
-          // Only return the source if it's not another cloudflare challenge
-          // which would mean the cookies are invalid
-          if (res.body.isNotEmpty) {
-            if (!_matchesCloudflare(res.body)) {
-              if (!sourceCompleter.isCompleted) {
-                Loader.text.val = 'Found source via NetReader';
-                // keep things lightweight as this is in the background.
-                plugin.reloadUrl('about:blank');
-                sourceCompleter.complete(StringNormalizer.normalize(res.body));
+          if (res != null && !timedOut) {
+            Loader.text.val = 'Read page source';
+            // Only return the source if it's not another cloudflare challenge
+            // which would mean the cookies are invalid
+            if (res.body.isNotEmpty) {
+              if (!_matchesCloudflare(res.body)) {
+                if (!sourceCompleter.isCompleted) {
+                  Loader.text.val = 'Found source via NetReader';
+                  // keep things lightweight as this is in the background.
+                  plugin.reloadUrl('about:blank');
+                  sourceCompleter
+                      .complete(StringNormalizer.normalize(res.body));
+                }
+              } else {
+                Loader.text.val =
+                    'Cookies out of date \n Waiting for webview source';
               }
-            } else {
-              Loader.text.val = 'Cookies out of date \n Waiting for webview source';
             }
+          } else {
+            Loader.text.val = 'Timed out..';
           }
         });
       }
     });
 
-    return sourceCompleter.future.catchError((err) {
-      // keep things lightweight as this is in the background.
+    return sourceCompleter.future.catchError(
+      (err) {
+        // keep things lightweight as this is in the background.
+        timedOut = true;
+        if (!cookieSub.isClosed) {
+          cookieSub.close();
+        }
+        plugin.reloadUrl('about:blank');
+      },
+    ).timeout(globals.timeoutLength, onTimeout: () {
+      timedOut = true;
+      if (!cookieSub.isClosed) {
+        cookieSub.close();
+      }
       plugin.reloadUrl('about:blank');
+      return null;
     });
   }
 }

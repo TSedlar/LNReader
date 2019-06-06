@@ -24,19 +24,19 @@ class _PreviewListView extends State<PreviewListView> {
     if (globals.loading.val) {
       return Loader.create(context);
     } else {
-      List<Widget> sourceLists = [];
+      List<Widget> sourceWidgets = [];
       globals.sources.values.forEach((source) {
         if (widget.favorites) {
           if (source.favorites.seen && source.favorites.val.isNotEmpty) {
             // Add section title
-            sourceLists.add(Section.create(
+            sourceWidgets.add(Section.create(
               source.name,
               padLeft: 12.0,
               padTop: 12.0,
             ));
             // Add favorites
-            sourceLists.add(
-              source.makePreviewList(context, source.favorites.val),
+            sourceWidgets.addAll(
+              source.makePreviewWidgets(context, source.favorites.val),
             );
           }
         } else {
@@ -46,19 +46,20 @@ class _PreviewListView extends State<PreviewListView> {
               (p1, p2) => p2.lastReadStamp.val.compareTo(p1.lastReadStamp.val),
             );
             // Add section title
-            sourceLists.add(Section.create(
+            sourceWidgets.add(Section.create(
               source.name,
               padLeft: 12.0,
               padTop: 12.0,
             ));
             // Add recents
-            sourceLists.add(
-              source.makePreviewList(context, source.readPreviews.val),
+            sourceWidgets.addAll(
+              source.makePreviewWidgets(context, source.readPreviews.val),
             );
           }
         }
       });
       return Scaffold(
+        backgroundColor: Theme.of(context).accentColor,
         appBar: AppBar(
           title: Text(
             widget.favorites ? 'Favorites' : 'Recent',
@@ -70,7 +71,12 @@ class _PreviewListView extends State<PreviewListView> {
         ),
         body: Container(
           color: Theme.of(context).accentColor,
-          child: ListView(children: sourceLists),
+          child: Padding(
+            padding: EdgeInsets.only(top: 4.0),
+            child: SingleChildScrollView(
+              child: Column(children: sourceWidgets),
+            ),
+          ),
         ),
       );
     }

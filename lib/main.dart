@@ -138,7 +138,7 @@ class _MainApplication extends State<MainApplication>
           globals.loading.val = false;
           final ReaderArgs args = settings.arguments;
           displayWidget =
-              ReaderView(chapter: args.chapter, markdown: args.markdown);
+              ReaderView(chapter: args.chapter, content: args.content);
           fullscreen = true;
         }
 

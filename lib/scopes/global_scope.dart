@@ -12,7 +12,7 @@ import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/novel/sources/novel_planet.dart';
 import 'package:ln_reader/util/observable.dart';
 
-final timeoutLength = Duration(seconds: 40);
+final timeoutLength = Duration(seconds: 25);
 
 final Map<String, LNSource> sources = Map.fromIterable(
   [

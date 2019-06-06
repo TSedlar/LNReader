@@ -27,7 +27,7 @@ class Retry extends StatefulWidget {
                 FlatButton(
                   child: Text('Cancel'),
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.of(context, rootNavigator: true).pop();
                     if (fixLoader) {
                       globals.loading.val = false;
                     }
@@ -40,7 +40,7 @@ class Retry extends StatefulWidget {
                     if (fixLoader) {
                       globals.loading.val = true;
                     }
-                    Navigator.pop(context);
+                    Navigator.of(context, rootNavigator: true).pop();
                     exec(context, future, fixLoader: fixLoader);
                   },
                 )

@@ -3,24 +3,24 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:ln_reader/util/ui/html_renderer.dart';
 import 'package:intl/intl.dart';
 import 'package:battery_indicator/battery_indicator.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 
 class ReaderArgs {
-  ReaderArgs({this.chapter, this.markdown});
+  ReaderArgs({this.chapter, this.content});
 
   final LNChapter chapter;
-  final String markdown;
+  final String content;
 }
 
 class ReaderView extends StatefulWidget {
-  ReaderView({Key key, this.chapter, this.markdown}) : super(key: key);
+  ReaderView({Key key, this.chapter, this.content}) : super(key: key);
 
   final LNChapter chapter;
-  final String markdown;
+  final String content;
 
   @override
   _ReaderView createState() => _ReaderView();
@@ -69,32 +69,34 @@ class _ReaderView extends State<ReaderView> {
       // jump when it's available instead.
       controller.jumpTo(startOffset);
 
-      // Set the scroll length to full length
-      widget.chapter.scrollLength = controller.position.maxScrollExtent;
-
-      setState(() {
-        // Set initial percent read amount
-        percentRead =
-            (controller.offset / controller.position.maxScrollExtent) * 100.0;
-      });
-
-      // Create scroll listener to update data
-      controller.addListener(() {
-        widget.chapter.lastPosition = max(0, controller.offset);
+      // Prevent some math calculation errs
+      if (controller.position.maxScrollExtent != 0) {
+        // Set the scroll length to full length
         widget.chapter.scrollLength = controller.position.maxScrollExtent;
+
         setState(() {
-          final scrollAmt =
-              widget.chapter.lastPosition / controller.position.maxScrollExtent;
-          percentRead = scrollAmt * 100.0;
+          // Set initial percent read amount
+          percentRead =
+              (controller.offset / controller.position.maxScrollExtent) * 100.0;
         });
-      });
+      }
 
       // Update the clock every minute
       timeTimer = Timer.periodic(Duration(minutes: 1), (_) => _setTime());
 
-      // Update time remaining every 10 seconds
-      remainingTimer =
-          Timer.periodic(Duration(seconds: 10), (_) => _setTimeRemaining());
+      // Update time remaining every 5 seconds
+      remainingTimer = Timer.periodic(Duration(seconds: 5), (_) {
+        if (mounted && controller.position.maxScrollExtent != 0) {
+          widget.chapter.lastPosition = max(0, controller.offset);
+          widget.chapter.scrollLength = controller.position.maxScrollExtent;
+          setState(() {
+            final scrollAmt = widget.chapter.lastPosition /
+                controller.position.maxScrollExtent;
+            percentRead = scrollAmt * 100.0;
+          });
+          _setTimeRemaining();
+        }
+      });
     });
   }
 
@@ -143,10 +145,48 @@ class _ReaderView extends State<ReaderView> {
   TextStyle _smallStyle() =>
       Theme.of(context).textTheme.body1.copyWith(fontSize: 10.0);
 
+  Widget _makeReader() {
+    return ListView(
+      controller: controller,
+      children: HtmlRenderer.createChildren(
+        widget.content,
+        theme: ThemeData(
+          textTheme: TextTheme(
+            body1: TextStyle(
+              fontFamily: globals.readerFontFamily.val,
+              fontSize: globals.readerFontSize.val,
+              color: Theme.of(context).textTheme.body1.color,
+            ),
+            body2: TextStyle(
+              fontFamily: globals.readerFontFamily.val,
+              fontSize: globals.readerFontSize.val,
+              color: Theme.of(context).textTheme.body1.color,
+            ),
+            headline: TextStyle(
+              fontFamily: globals.readerFontFamily.val,
+              fontSize: globals.readerFontSize.val * 1.33,
+              color: Theme.of(context).textTheme.headline.color,
+            ),
+            title: TextStyle(
+              fontFamily: globals.readerFontFamily.val,
+              fontSize: globals.readerFontSize.val * 2,
+              color: Theme.of(context).textTheme.headline.color,
+            ),
+            subhead: TextStyle(
+              fontFamily: globals.readerFontFamily.val,
+              fontSize: globals.readerFontSize.val * 1.175,
+              color: Theme.of(context).textTheme.headline.color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
+    return Scaffold(
+      body: Container(
           color: Theme.of(context).primaryColor,
           child: Stack(
             children: [
@@ -156,53 +196,7 @@ class _ReaderView extends State<ReaderView> {
                   right: 12.0,
                   top: showNavs ? 2.0 : 27.0,
                 ),
-                child: SingleChildScrollView(
-                  controller: controller,
-                  child: GestureDetector(
-                    onTap: () {
-                      showNavs = !showNavs;
-                      if (showNavs) {
-                        SystemChrome.setEnabledSystemUIOverlays(
-                          [SystemUiOverlay.top, SystemUiOverlay.bottom],
-                        );
-                      } else {
-                        SystemChrome.setEnabledSystemUIOverlays([]);
-                      }
-                    },
-                    child: new MarkdownBody(
-                      styleSheet: MarkdownStyleSheet.fromTheme(ThemeData(
-                        textTheme: TextTheme(
-                          body1: TextStyle(
-                            fontFamily: globals.readerFontFamily.val,
-                            fontSize: globals.readerFontSize.val,
-                            color: Theme.of(context).textTheme.body1.color,
-                          ),
-                          body2: TextStyle(
-                            fontFamily: globals.readerFontFamily.val,
-                            fontSize: globals.readerFontSize.val,
-                            color: Theme.of(context).textTheme.body1.color,
-                          ),
-                          headline: TextStyle(
-                            fontFamily: globals.readerFontFamily.val,
-                            fontSize: globals.readerFontSize.val * 1.33,
-                            color: Theme.of(context).textTheme.headline.color,
-                          ),
-                          title: TextStyle(
-                            fontFamily: globals.readerFontFamily.val,
-                            fontSize: globals.readerFontSize.val * 2,
-                            color: Theme.of(context).textTheme.headline.color,
-                          ),
-                          subhead: TextStyle(
-                            fontFamily: globals.readerFontFamily.val,
-                            fontSize: globals.readerFontSize.val * 1.175,
-                            color: Theme.of(context).textTheme.headline.color,
-                          ),
-                        ),
-                      )),
-                      data: widget.markdown,
-                    ),
-                  ),
-                ),
+                child: _makeReader(),
               ),
               // This ensures the mini status bar is on top
               !showNavs
@@ -251,7 +245,9 @@ class _ReaderView extends State<ReaderView> {
                                           Padding(
                                             padding: EdgeInsets.only(left: 3.0),
                                             child: Text(
-                                              (percentRead.toInt().toString() +
+                                              (percentRead
+                                                          .toStringAsFixed(1)
+                                                          .toString() +
                                                       '%') +
                                                   (timeRemaining != null
                                                       ? '   ' + timeRemaining

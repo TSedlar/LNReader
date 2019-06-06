@@ -6,9 +6,10 @@ import 'package:http/http.dart';
 class WebRequest {
   final String url;
   final Map<String, String> cookies;
+  final Duration timeout;
   final SendPort source;
 
-  WebRequest(this.url, this.cookies, this.source);
+  WebRequest(this.url, this.cookies, this.timeout, this.source);
 }
 
 class WebResponse {
@@ -51,19 +52,21 @@ class NetReader {
   // Reads the given url page with optional cookies
   static Future<WebResponse> readPage(
     String url, {
+    Duration timeout = const Duration(seconds: 15),
     Map<String, String> cookies,
   }) =>
-      _readPageIsolate(WebRequest(url, cookies, null));
+      _readPageIsolate(WebRequest(url, cookies, timeout, null));
 
   // Reads the given url page with optional cookies as an isolate
   static Future<WebResponse> readPageInBackground(
     String url, {
+    Duration timeout = const Duration(seconds: 15),
     Map<String, String> cookies,
   }) async {
     final sourcePort = ReceivePort();
     return Isolate.spawn(
       _readPageIsolate,
-      WebRequest(url, cookies, sourcePort.sendPort),
+      WebRequest(url, cookies, timeout, sourcePort.sendPort),
     )
         .then((isolate) => sourcePort.first)
         .then((data) => WebResponse(data.headers, data.body, data.statusCode));
@@ -80,17 +83,19 @@ class NetReader {
     _addCookies(headers, web.cookies);
 
     // Make request with headers
-    return client.get(web.url, headers: headers).then((response) {
-      // Conver body to sendable body
-      String body = response.body; //String.fromCharCodes(response.bodyBytes);
-      // Send response to SendPort if available
-      if (web.source != null) {
-        web.source
-            .send(WebResponse(response.headers, body, response.statusCode));
-      }
-      // Return response
-      return WebResponse(response.headers, body, response.statusCode);
-    });
+    return client.get(web.url, headers: headers).timeout(web.timeout).then(
+      (response) {
+        // Conver body to sendable body
+        String body = response.body; //String.fromCharCodes(response.bodyBytes);
+        // Send response to SendPort if available
+        if (web.source != null) {
+          web.source
+              .send(WebResponse(response.headers, body, response.statusCode));
+        }
+        // Return response
+        return WebResponse(response.headers, body, response.statusCode);
+      },
+    );
   }
 
   // Self explanatory -- adds cookies to given header

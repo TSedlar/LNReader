@@ -10,14 +10,12 @@ class AboutView extends StatelessWidget {
     'url_launcher ^5.0.2': 'https://pub.dev/packages/url_launcher',
     'intl ^0.15.8': 'https://pub.dev/packages/intl',
     'http ^0.12.0+2': 'https://pub.dev/packages/http',
-    'html ^0.13.3': 'https://pub.dev/packages/html',
-    'html2md ^0.3.1': 'https://pub.dev/packages/html2md',
+    'html ^0.14.0': 'https://pub.dev/packages/html',
     'modal_progress_hud ^0.1.3': 'https://pub.dev/packages/modal_progress_hud',
     'battery_indicator ^0.0.2': 'https://pub.dev/packages/battery_indicator',
     'sticky_headers ^0.1.8': 'https://pub.dev/packages/sticky_headers',
     'flutter_webview_plugin ^0.3.5':
         'https://pub.dev/packages/flutter_webview_plugin',
-    'flutter_markdown ^0.2.0': 'https://pub.dev/packages/flutter_markdown',
     'flutter_speed_dial ^1.1.2': 'https://pub.dev/packages/flutter_speed_dial',
   };
 

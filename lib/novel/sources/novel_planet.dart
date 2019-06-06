@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:html/parser.dart';
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
@@ -114,8 +115,9 @@ class NovelPlanet extends LNSource {
           if (details != null) {
             print('DETAILS VALID');
             final paragraphs = details.querySelectorAll('p');
-            if (paragraphs.length >= 6) {
+            if (paragraphs.length >= 6 && !paragraphs.contains(null)) {
               print('6 PARAGRAPHS VALID');
+
               final elTitle = paragraphs[0].querySelector('a[class*="title"]');
               final elOtherNames = paragraphs[1].querySelectorAll('a[title]');
               final elGenres = paragraphs[2].querySelectorAll('a[title]');
@@ -127,63 +129,83 @@ class NovelPlanet extends LNSource {
               final elExtras = details.querySelectorAll(
                 'div[class*="divReplaceP"] span[class*="infoLabel"]',
               );
-              if (![
-                elTitle,
-                elOtherNames,
-                elGenres,
-                elAuthors,
-                elStatus,
-                elTranslator,
-                elDescription,
-                elExtras,
-              ].contains(null)) {
-                print('ARRAY ELEMENT VALID');
-                final entry = LNEntry();
-                entry.source = preview.source;
+
+              final entry = LNEntry();
+
+              entry.source = preview.source;
+
+              if (elTitle != null) {
                 entry.name = StringNormalizer.normalize(elTitle.text, true);
+              }
+
+              if (elOtherNames != null) {
                 entry.aliases.addAll(elOtherNames.map((n) => n.text));
+              }
+
+              if (elGenres != null) {
                 entry.genres.addAll(elGenres.map((g) => g.text));
+              }
+
+              if (elAuthors != null) {
                 entry.authors.addAll(elAuthors.map((a) => a.text));
+              }
+
+              if (elStatus != null) {
                 entry.status = elStatus.text;
+              }
+
+              if (elTranslator != null) {
                 entry.translator = elTranslator.text;
+              }
+
+              if (elDescription != null) {
                 entry.description = elDescription.text.trim();
-                if (elExtras.length >= 2) {
-                  final textNode0 = elExtras[0].parent.nodes.last;
-                  final textNode1 = elExtras[1].parent.nodes.last;
-                  if (textNode0 != null) {
-                    entry.releaseDate =
-                        StringNormalizer.normalize(textNode0.text, true)
-                            .replaceAll('(', '')
-                            .replaceAll(')', '');
-                  }
-                  if (textNode1 != null) {
-                    entry.popularity = int.parse(
-                      StringNormalizer.normalize(textNode1.text, true),
-                    );
-                  }
+              }
+
+              if (elExtras != null && elExtras.length >= 2) {
+                final textNode0 = elExtras[0].parent.nodes.last;
+                final textNode1 = elExtras[1].parent.nodes.last;
+                if (textNode0 != null) {
+                  entry.releaseDate =
+                      StringNormalizer.normalize(textNode0.text, true)
+                          .replaceAll('(', '')
+                          .replaceAll(')', '');
                 }
-                final elChapters = document.querySelectorAll(
-                  'div[class*="rowChapter"] a[title]',
-                );
+                if (textNode1 != null) {
+                  entry.popularity = int.parse(
+                    StringNormalizer.normalize(textNode1.text, true),
+                  );
+                }
+              }
+
+              final elChapters = document.querySelectorAll(
+                'div[class*="rowChapter"] a[title]',
+              );
+
+              if (elChapters != null) {
                 elChapters.forEach((elChapter) {
                   final chapter = LNChapter();
+
                   chapter.source = preview.source;
                   chapter.index = entry.chapters.length;
+
                   chapter.title =
                       StringNormalizer.normalize(elChapter.text, true);
+
                   chapter.link = mkurl(elChapter.attributes['href']);
+
                   final elNext = elChapter.nextElementSibling;
-                  if (elNext.className.contains('date')) {
+
+                  if (elNext != null && elNext.className.contains('date')) {
                     chapter.date = StringNormalizer.normalize(elNext.text, true)
                         .replaceAll('(', '')
                         .replaceAll(')', '');
                   }
+                  
                   entry.chapters.add(chapter);
                 });
-                return entry;
-              } else {
-                print('ARRAY ELEMENT NULL');
               }
+              return entry;
             } else {
               print('6 PARAGRAPHS NULL');
             }
@@ -198,16 +220,17 @@ class NovelPlanet extends LNSource {
   @override
   Future<String> makeReaderContent(LNChapter chapter) =>
       readFromView(chapter.link).then((html) {
+        print('retrieved reader content');
         if (html == null) {
           print('Failed to get readable content for ${chapter.link}');
           return null;
         } else {
           final document = parse(html);
           print('parsed reader document...');
-          final content = document.querySelector('#divReadContent').innerHtml;
+          final content = document.querySelector('#divReadContent');
           print('parsed reader document content.......');
           print('normalizing document reader...');
-          String normalized = StringNormalizer.normalize(content);
+          String normalized = StringNormalizer.normalize(content.innerHtml);
           print('normalized...');
           return normalized;
         }
