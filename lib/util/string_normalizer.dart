@@ -1,8 +1,8 @@
 class StringNormalizer {
   static String normalize(String str, [bool removeLineBreaks = false]) {
-    // Null -> empty string
+    // Early catch null input
     if (str == null) {
-      return '';
+      return null;
     }
     // Remove start/end quotes
     if (str.startsWith('"') && str.endsWith('"')) {

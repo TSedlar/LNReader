@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/rendering.dart';
 import 'package:html/parser.dart';
@@ -15,36 +13,85 @@ class HtmlRenderer {
   static final _sentenceSplitter =
       RegExp('((([A-Za-z0-9.?!]+(((?<!Mrs?)\\.)|\\?|\\!) )|("([^"]+)")))');
 
-  static const double defaultElementSpacing = 0.0;
+  static const double defaultElementSpacing = 5.0;
   static const defaultLineSpacing = 1.1;
 
   static final ElementMapper defaultMapper = (element, {theme, options}) {
     switch (element.localName) {
       case 'p':
         {
+          // Create array variables
           final children = <Widget>[];
+          final segments = <String>[];
+          final pages = <String>[];
+
+          // The current segment that will be added to the array
+          String currentSegment = '';
+
+          // Index tracking for any changes needed to be done
+          int idx = 0;
+          int lastAddedIdx = 0;
+
+          // Combine all lines possible for less elements
           element.nodes.forEach((node) {
-            String txt = node.text;
+            String txt = node.text.trim();
             if (txt != null && txt.isNotEmpty) {
               if (_isNumeric(txt)) {
-                txt = '\n';
+                segments.add(txt);
+                pages.add(txt);
+              } else {
+                if (currentSegment != null && currentSegment.isNotEmpty) {
+                  currentSegment += ' ';
+                }
+                currentSegment += txt;
+                if (currentSegment.endsWith('?') ||
+                    currentSegment.endsWith('.') ||
+                    currentSegment.endsWith('!') ||
+                    currentSegment.endsWith('"') ||
+                    currentSegment.endsWith("'")) {
+                  segments.add(currentSegment);
+                  currentSegment = '';
+                  lastAddedIdx = idx;
+                }
               }
-              children.add(Text(txt, style: theme.textTheme.body1));
             }
+            idx++;
           });
+
+          // Ensure last remaining text is added
+          if (lastAddedIdx != idx && currentSegment.trim().isNotEmpty) {
+            segments.add(currentSegment);
+          }
+
+          // Create elements from segments
+          children.addAll(
+            segments.map((seg) {
+              bool isPage = pages.contains(seg);
+              
+              Widget child = Text(
+                isPage ? 'Page $seg' : seg,
+                style: theme.textTheme.body1.copyWith(
+                  height: options['line_spacing'] ?? defaultLineSpacing,
+                ),
+              );
+
+              if (isPage) {
+                child = Center(child: child);
+              }
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: options['element_spacing'] ?? defaultElementSpacing,
+                ),
+                child: child,
+              );
+            }),
+          );
+
           return Column(
             children: children,
             crossAxisAlignment: CrossAxisAlignment.start,
           );
-          // String txt = element.text;
-          // if (txt != null && txt.trim().isNotEmpty) {
-          //   return Text(
-          //     _formatText(txt),
-          //     style: theme.textTheme.body1.copyWith(
-          //       height: options['line_spacing'] ?? defaultLineSpacing,
-          //     ),
-          //   );
-          // }
         }
     }
     return null;
@@ -112,15 +159,6 @@ class HtmlRenderer {
       });
     });
 
-    return children
-        .where((child) => child != null)
-        .toList()
-        .map((w) => Padding(
-              padding: EdgeInsets.only(
-                bottom: options['element_spacing'] ?? defaultElementSpacing,
-              ),
-              child: w,
-            ))
-        .toList();
+    return children.where((child) => child != null).toList();
   }
 }

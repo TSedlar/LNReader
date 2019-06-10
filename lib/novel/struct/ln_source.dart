@@ -1,22 +1,20 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
-// import 'package:html2md/html2md.dart' as html2md;
+import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
-import 'package:ln_reader/util/net/global_web_view.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
+import 'package:ln_reader/util/ui/retry.dart';
 import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
 import 'package:ln_reader/views/widget/loader.dart';
-import 'package:ln_reader/views/widget/retry_widget.dart';
 
 abstract class LNSource {
   // repectfully allow only web view if a site owner asks
@@ -24,7 +22,9 @@ abstract class LNSource {
   // Supplied through abstraction
   String id;
   String name;
+  String lang;
   String baseURL;
+  String logoAsset;
   List<String> tabCategories;
   List<String> genres;
   // Set within the constructor
@@ -32,8 +32,15 @@ abstract class LNSource {
   ObservableValue<List<LNPreview>> favorites;
   ObservableValue<List<LNPreview>> readPreviews;
 
-  LNSource(
-      {this.id, this.name, this.baseURL, this.tabCategories, this.genres}) {
+  LNSource({
+    this.id,
+    this.name,
+    this.lang,
+    this.baseURL,
+    this.logoAsset,
+    this.tabCategories,
+    this.genres,
+  }) {
     this.selectedGenres = ObservableValue.fromList<String>(genres.toList());
     this.favorites = ObservableValue.fromList<LNPreview>([]);
     this.readPreviews = ObservableValue.fromList<LNPreview>([]);
@@ -56,43 +63,44 @@ abstract class LNSource {
     return 'https://images2-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&gadget=a&no_expand=1&resize_h=0&rewriteMime=image%2F*&url=$imgLink&imgmax=10000';
   }
 
-  Future<String> readFromView(String url) => GlobalWebView.readPage(url);
+  Future<String> readFromView(String url) => WebviewReader.read(url);
 
   List<Widget> makePreviewWidgets(
     BuildContext context,
-    List<LNPreview> previews,
-  ) {
+    List<LNPreview> previews, {
+    Function() onEntryTap,
+    Function() onEntryNavPush,
+  }) {
     final double itemSize = 80;
     // (device_width - (cover_width + padding)) / (chip_width + chip_right_padding)
     final int maxChips =
         ((MediaQuery.of(context).size.width - 170.0) / 49.0).floor();
     return previews
         .map((preview) => GestureDetector(
-              onTap: () {
-                globals.loading.val = true;
+              onTap: () async {
+                if (onEntryTap != null) {
+                  onEntryTap();
+                }
+
                 preview.loadExistingData();
-                Retry.exec(
-                  context,
-                  () => preview.source.parseEntry(preview).then((entry) {
-                        if (entry == null) {
-                          globals.loading.val = false;
-                          throw Error();
-                        } else {
-                          Navigator.of(globals.homeContext.val).pushNamed(
-                            '/entry',
-                            arguments: EntryArgs(
-                              preview: preview,
-                              entry: entry,
-                              nextChapter: preview.lastRead.seen
-                                  ? entry.nextChapter(preview.lastRead.val)
-                                  : null,
-                            ),
-                          );
-                          globals.loading.val = false;
-                          return Future.value(true);
-                        }
-                      }),
-                );
+
+                final html = await preview.source.fetchEntry(preview);
+
+                if (html != null) {
+                  Navigator.of(globals.homeContext.val).pushNamed(
+                    '/entry',
+                    arguments: EntryArgs(
+                      preview: preview,
+                      html: html,
+                    ),
+                  );
+                  if (onEntryNavPush != null) {
+                    Future.delayed(Duration(seconds: 2))
+                        .then((_) => onEntryNavPush());
+                  }
+                } else {
+                  print('A good connection is needed for LNReader..');
+                }
               },
               child: Container(
                 margin: EdgeInsets.only(
@@ -190,8 +198,18 @@ abstract class LNSource {
         .toList();
   }
 
-  Widget makePreviewList(BuildContext context, List<LNPreview> previews) {
-    final previewWidgets = makePreviewWidgets(context, previews);
+  Widget makePreviewList(
+    BuildContext context,
+    List<LNPreview> previews, {
+    Function() onEntryTap,
+    Function() onEntryNavPush,
+  }) {
+    final previewWidgets = makePreviewWidgets(
+      context,
+      previews,
+      onEntryTap: onEntryTap,
+      onEntryNavPush: onEntryNavPush,
+    );
     return Padding(
       padding: EdgeInsets.only(top: 4.0),
       child: CustomScrollView(
@@ -212,56 +230,45 @@ abstract class LNSource {
     BuildContext context,
     LNChapter chapter,
     bool readerMode,
-  ) {
+  ) async {
     if (readerMode && chapter.isTextFormat()) {
-      // Push custom ReaderView
-      return Retry.exec(
-        context,
-        () {
-          globals.loading.val = true;
-          Loader.text.val = 'Getting chapter data...';
-          return makeReaderContent(chapter).then((source) {
-            if (source == null) {
-              globals.loading.val = false;
-              throw Error();
-            } else {
-              Loader.text.val = 'Loading ReaderView!';
-              Navigator.of(globals.homeContext.val).pushNamed(
-                '/reader',
-                arguments: ReaderArgs(chapter: chapter, content: source),
-              );
-              // return a value to prevent timeout waiting for nav#pop
-              return Future.value(true);
-            }
-          });
-        },
-      );
-    } else {
-      globals.loading.val = true;
-      return Navigator.of(globals.homeContext.val).push(CupertinoPageRoute(
-        builder: (ctx) {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(chapter.title),
-            ),
-            body: WebviewScaffold(
-              url: chapter.link,
-              withJavascript: true,
-            ),
-          );
-        },
-      )).then((x) {
-        globals.loading.val = false;
-        return x;
+      final html = await Retry.exec(context, () {
+        return readFromView(chapter.link);
       });
+
+      if (html != null) {
+        Loader.text.val = 'Creating readable content..';
+
+        final content = await LNIsolate.makeReaderContent(this, html);
+
+        Loader.text.val = 'Loading ReaderView!';
+
+        Navigator.of(globals.homeContext.val).pushNamed(
+          '/reader',
+          arguments: ReaderArgs(chapter: chapter, content: content),
+        );
+
+        return Future.value(true);
+      } else {
+        print('Failed to open chapter, nav#pop?');
+        return Future.value(false);
+      }
+    } else {
+      return WebviewReader.launchExternal(globals.homeContext.val, chapter.link);
     }
   }
 
-  Future<Map<String, List<LNPreview>>> parsePreviews();
+  Future<String> fetchPreviews();
 
-  Future<List<LNPreview>> search(String query, List<String> genre);
+  Map<String, List<LNPreview>> parsePreviews(String html);
 
-  Future<LNEntry> parseEntry(LNPreview preview);
+  Future<String> search(String query, List<String> genre);
 
-  Future<String> makeReaderContent(LNChapter chapter);
+  List<LNPreview> parseSearchPreviews(String html);
+
+  Future<String> fetchEntry(LNPreview preview);
+
+  LNEntry parseEntry(LNSource source, String html);
+
+  String makeReaderContent(String chapterHTML);
 }
