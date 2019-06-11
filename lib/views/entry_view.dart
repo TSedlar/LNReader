@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'package:ln_reader/util/net/global_web_view.dart';
+import 'package:ln_reader/novel/ln_isolate.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:share/share.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
@@ -13,32 +15,43 @@ import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/widget/section.dart';
 
 class EntryArgs {
-  EntryArgs({this.preview, this.entry, this.nextChapter});
+  EntryArgs({this.preview, this.html});
 
   final LNPreview preview;
-  final LNEntry entry;
-  final LNChapter nextChapter;
+  final String html;
 }
 
 class EntryView extends StatefulWidget {
-  EntryView({Key key, this.preview, this.entry}) : super(key: key);
+  EntryView({Key key, this.preview, this.html}) : super(key: key);
 
   final LNPreview preview;
-  final LNEntry entry;
+  final String html;
 
   @override
   _EntryView createState() => _EntryView();
 }
 
 class _EntryView extends State<EntryView> {
+  LNEntry entry;
+  bool readingChapter = false;
+
   @override
   void initState() {
     super.initState();
     widget.preview.lastRead.bind(this);
     widget.preview.ascending.bind(this);
     widget.preview.source.favorites.bind(this);
-    globals.loading.bind(this);
     globals.readerMode.bind(this);
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      // Retrieve entry in background
+      final _entry =
+          await LNIsolate.parseEntry(widget.preview.source, widget.html);
+
+      // Update entry state
+      setState(() {
+        entry = _entry;
+      });
+    });
   }
 
   Widget _txt(String str, [double bottomPadding = 6.0]) {
@@ -77,27 +90,25 @@ class _EntryView extends State<EntryView> {
               children: [
                 TableRow(children: [
                   _txt('Authors:'),
-                  _txt(widget.entry.authors.join(', ')),
+                  _txt(entry.authors.join(', ')),
                 ]),
                 TableRow(children: [
                   _txt('Aliases:'),
                   _txt(
-                    widget.entry.aliases.isEmpty
-                        ? 'N/A'
-                        : widget.entry.aliases.join(', '),
+                    entry.aliases.isEmpty ? 'N/A' : entry.aliases.join(', '),
                   ),
                 ]),
                 TableRow(children: [
                   _txt('Released:'),
-                  _txt(widget.entry.releaseDate),
+                  _txt(entry.releaseDate),
                 ]),
                 TableRow(children: [
                   _txt('Status:', 7.0),
-                  _txt(widget.entry.status, 7.0),
+                  _txt(entry.status, 7.0),
                 ]),
                 TableRow(children: [
                   _txt('Translator:'),
-                  _txt(widget.entry.translator),
+                  _txt(entry.translator),
                 ]),
               ],
             ),
@@ -115,8 +126,8 @@ class _EntryView extends State<EntryView> {
     }
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
-      children: widget.entry.genres
-          .sublist(0, min(maxChips, widget.entry.genres.length))
+      children: entry.genres
+          .sublist(0, min(maxChips, entry.genres.length))
           .map(
             (g) => Container(
                   padding: EdgeInsets.only(right: 2.5),
@@ -147,6 +158,11 @@ class _EntryView extends State<EntryView> {
   }
 
   Future _openChapter(LNChapter chapter) {
+    // Start the load interface
+    setState(() {
+      readingChapter = true;
+    });
+
     // Ensure chapter is seen and not the same as the one chosen to open
     if (widget.preview.lastRead.seen &&
         widget.preview.lastRead.val.link != chapter.link) {
@@ -154,20 +170,22 @@ class _EntryView extends State<EntryView> {
           widget.preview.lastRead.val.scrollLength;
     }
     widget.preview.markLastRead(chapter);
-    globals.loading.val = true;
-    return chapter.source
-        .launchView(context, chapter,
-            globals.readerMode.val && chapter.source.allowsReaderMode)
-        .then((view) => Future.value(() {
-              globals.loading.val = false;
-              return view;
-            }));
+    return chapter.source.launchView(
+      context,
+      chapter,
+      globals.readerMode.val && chapter.source.allowsReaderMode,
+    ).then((_) {
+      setState(() {
+        readingChapter = false;
+      });
+      return _;
+    });
   }
 
   Widget _makeChapterCard(LNChapter chapter, {String title, String subtitle}) {
     final nextChapter = widget.preview.lastRead.seen
         ? (widget.preview.lastRead.val.nearCompletion()
-            ? widget.entry.nextChapter(widget.preview.lastRead.val)
+            ? entry.nextChapter(widget.preview.lastRead.val)
             : widget.preview.lastRead.val)
         : null;
 
@@ -236,7 +254,7 @@ class _EntryView extends State<EntryView> {
                       widget.preview.markLastRead(chapter);
                     } else if (action == 'open_external') {
                       print('Opening in external browser...');
-                      GlobalWebView.launchExternal(context, chapter.link);
+                      WebviewReader.launchExternal(context, chapter.link);
                     } else if (action == 'share_link') {
                       print('Sharing link...');
                       Share.share(chapter.link);
@@ -255,10 +273,10 @@ class _EntryView extends State<EntryView> {
     return SliverList(
       delegate: SliverChildBuilderDelegate((ctx, index) {
         final chapter = widget.preview.ascending.val
-            ? widget.entry.chapters[widget.entry.chapters.length - 1 - index]
-            : widget.entry.chapters[index];
+            ? entry.chapters[entry.chapters.length - 1 - index]
+            : entry.chapters[index];
         return _makeChapterCard(chapter);
-      }, childCount: widget.entry.chapters.length),
+      }, childCount: entry.chapters.length),
     );
   }
 
@@ -311,8 +329,7 @@ class _EntryView extends State<EntryView> {
           labelStyle: TextStyle(fontSize: 14.0, color: Colors.black),
           onTap: () {
             if (widget.preview.lastRead.seen) {
-              final next =
-                  widget.entry.nextChapter(widget.preview.lastRead.val);
+              final next = entry.nextChapter(widget.preview.lastRead.val);
               if (next != null) {
                 _openChapter(next);
               } else {
@@ -327,7 +344,7 @@ class _EntryView extends State<EntryView> {
                 );
               }
             } else {
-              _openChapter(widget.entry.firstChapter());
+              _openChapter(entry.firstChapter());
             }
           },
         ),
@@ -351,10 +368,10 @@ class _EntryView extends State<EntryView> {
   Widget build(BuildContext context) {
     final nextChapter = widget.preview.lastRead.seen
         ? (widget.preview.lastRead.val.nearCompletion()
-            ? widget.entry.nextChapter(widget.preview.lastRead.val)
+            ? entry.nextChapter(widget.preview.lastRead.val)
             : widget.preview.lastRead.val)
         : null;
-    return globals.loading.val
+    return entry == null || readingChapter
         ? Loader.create(context)
         : Scaffold(
             appBar: AppBar(
@@ -403,8 +420,7 @@ class _EntryView extends State<EntryView> {
                             Padding(
                               padding: EdgeInsets.only(top: 3.0, bottom: 6.0),
                               child: Text(
-                                widget.entry.description
-                                    .replaceAll(r'\n', '\n'),
+                                entry.description.replaceAll(r'\n', '\n'),
                                 style: TextStyle(
                                   color: ColorTool.shade(
                                     HexColor(

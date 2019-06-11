@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
-import 'package:ln_reader/util/net/global_web_view.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/views/preview_list_view.dart';
 
@@ -95,7 +95,7 @@ class _SidebarView extends State<SidebarView> {
                     leading: Icon(Icons.local_cafe, color: fgAccent.color),
                     title: Text('Support Development', style: fgAccent),
                     onTap: () =>
-                        GlobalWebView.launchExternal(context, githubREADME),
+                        WebviewReader.launchExternal(context, githubREADME),
                   ),
                   ListTile(
                     leading: Icon(Icons.help, color: fgAccent.color),

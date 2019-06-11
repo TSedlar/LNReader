@@ -1,27 +1,42 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
+import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/ui/color_tool.dart';
+import 'package:ln_reader/util/ui/retry.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/sidebar_view.dart';
 import 'package:ln_reader/views/widget/custom_tab_view.dart';
-import 'package:ln_reader/views/widget/retry_widget.dart';
 
 class HomeArgs {
-  HomeArgs({this.poppable, this.previews, this.searchPreviews});
+  HomeArgs({
+    this.poppable,
+    this.source,
+    this.html,
+    this.isSearch = false,
+  });
 
   final bool poppable;
-  final Map<String, List<LNPreview>> previews;
-  final List<LNPreview> searchPreviews;
+  final LNSource source;
+  final String html;
+  final bool isSearch;
 }
 
 class HomeView extends StatefulWidget {
-  HomeView({Key key, this.previews, this.searchPreviews}) : super(key: key);
+  HomeView({
+    Key key,
+    this.source,
+    this.html,
+    this.isSearch = false,
+  }) : super(key: key);
 
-  final Map<String, List<LNPreview>> previews;
-  final List<LNPreview> searchPreviews;
+  final LNSource source;
+  final String html;
+  final bool isSearch;
 
   @override
   _HomeView createState() => _HomeView();
@@ -30,50 +45,90 @@ class HomeView extends StatefulWidget {
 class _HomeView extends State<HomeView> {
   bool searching = false;
   bool submitted = false;
+  bool viewingPreview = false;
 
-  bool get viewable => widget.previews != null || widget.searchPreviews != null;
+  Map<String, List<LNPreview>> previews;
+  List<LNPreview> searchPreviews;
+
+  bool get viewable => previews != null || searchPreviews != null;
 
   @override
   void initState() {
     super.initState();
-    globals.loading.bind(this);
     globals.theme.bind(this);
     globals.source.bind(this);
     globals.source.val.selectedGenres.bind(this);
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      if (widget.isSearch) {
+        // Retrieve search previews in the background
+        final _searchPreviews = await LNIsolate.parseSearchPreviews(
+          widget.source,
+          widget.html,
+        );
+        // Update searchPreviews state
+        setState(() {
+          searchPreviews = _searchPreviews;
+        });
+      } else {
+        // Retrieve previews in the background
+        final _previews = await LNIsolate.parsePreviews(
+          widget.source,
+          widget.html,
+        );
+
+        // Update previews state
+        setState(() {
+          previews = _previews;
+        });
+      }
+    });
   }
 
-  _refresh({String query, bool forceSearch = false}) {
+  _refresh({String query, bool forceSearch = false}) async {
     if (query != null || forceSearch) {
+      setState(() => viewingPreview = true);
+
       query = (query != null ? query.toLowerCase() : null);
-      globals.loading.val = true;
-      Retry.exec(
-        context,
-        () {
-          final genres = globals.source.val.selectedGenres.val;
-          return globals.source.val.search(query, genres).then((p) {
-            _renavigate(searchPreviews: p);
-            // return a value to prevent timeout waiting for nav#pop
-            return Future.value(true);
-          });
-        },
-      );
+
+      final genres = globals.source.val.selectedGenres.val;
+
+      final html = await Retry.exec(context, () {
+        return globals.source.val.search(query, genres);
+      });
+
+      if (html != null) {
+        _renavigate(
+          source: globals.source.val,
+          html: html,
+          isSearch: true,
+        );
+      } else {
+        print('failed to search, navigator#pop + alert?');
+      }
+
+      setState(() => viewingPreview = false);
     } else {
-      globals.loading.val = true;
-      Retry.exec(
-          context,
-          () => globals.source.val.parsePreviews().then((p) {
-                _renavigate(previews: p);
-                // return a value to prevent timeout waiting for nav#pop
-                return Future.value(true);
-              }));
+      final html = await Retry.exec(context, () {
+        return globals.source.val.fetchPreviews();
+      });
+
+      if (previews != null) {
+        _renavigate(
+          source: globals.source.val,
+          html: html,
+        );
+      } else {
+        print('failed to retrieve, navigate somewhere else...');
+      }
     }
   }
 
   Future _renavigate({
-    Map<String, List<LNPreview>> previews,
-    List<LNPreview> searchPreviews,
+    LNSource source,
+    String html,
+    bool isSearch,
   }) {
-    if (widget.searchPreviews != null) {
+    if (widget.isSearch) {
       // Make it so that there's not various search pages
       Navigator.pop(context);
     }
@@ -81,9 +136,10 @@ class _HomeView extends State<HomeView> {
       context,
       '/home',
       arguments: HomeArgs(
-        poppable: widget.previews != null || widget.searchPreviews != null,
-        previews: previews,
-        searchPreviews: searchPreviews,
+        poppable: widget.html != null,
+        source: source,
+        html: html,
+        isSearch: isSearch,
       ),
     );
   }
@@ -124,12 +180,12 @@ class _HomeView extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     globals.homeContext.val = context;
-    return globals.loading.val
+    return !viewable || viewingPreview
         ? Loader.create(context)
         : Scaffold(
             backgroundColor: Theme.of(context).backgroundColor,
             // only show the drawer if it isn't a search
-            drawer: widget.previews != null ? SidebarView() : null,
+            drawer: !widget.isSearch ? SidebarView() : null,
             appBar: PreferredSize(
               preferredSize: Size.fromHeight(50.0),
               child: AppBar(
@@ -192,21 +248,27 @@ class _HomeView extends State<HomeView> {
                 ),
               ),
             ),
-            body: (widget.searchPreviews != null
+            body: (searchPreviews != null
                 ? globals.source.val.makePreviewList(
                     context,
-                    widget.searchPreviews,
+                    searchPreviews,
+                    onEntryTap: () => setState(() => viewingPreview = true),
+                    onEntryNavPush: () =>
+                        setState(() => viewingPreview = false),
                   )
                 : CustomTabView(
-                    itemCount:
-                        widget.previews != null ? widget.previews.length : 0,
+                    itemCount: previews != null ? previews.length : 0,
                     tabBuilder: (ctx, i) => Tab(
-                          child: Text(widget.previews.keys.elementAt(i)),
+                          child: Text(previews.keys.elementAt(i)),
                         ),
                     pageBuilder: (ctx, i) => Center(
                           child: globals.source.val.makePreviewList(
                             context,
-                            widget.previews.values.elementAt(i),
+                            previews.values.elementAt(i),
+                            onEntryTap: () =>
+                                setState(() => viewingPreview = true),
+                            onEntryNavPush: () =>
+                                setState(() => viewingPreview = false),
                           ),
                         ),
                   )),

@@ -15,11 +15,23 @@ class LNChapter {
     // 95% complete should count as completed.
     // 100% offset might not be reached..
     // This also accounts for people not reading translator notes etc.
-    return (lastPosition / scrollLength) >= 0.95;
+    return percentRead() >= 95.0;
   }
 
   double percentRead() {
-    return ((lastPosition / scrollLength) * 100.0);
+    try {
+      if (scrollLength == 0 || scrollLength == double.nan || scrollLength == double.infinity) {
+        return 0;
+      }
+      double percent = ((lastPosition / scrollLength) * 100.0);
+      if (percent == double.nan || percent == double.infinity) {
+        return 0;
+      } else {
+        return percent;
+      }
+    } catch (mathErr) {
+      return 0;
+    }
   }
 
   bool started() {
@@ -27,7 +39,11 @@ class LNChapter {
   }
 
   String percentReadString() {
-    return percentRead().toInt().toString() + '%';
+    return percentRead().toStringAsFixed(1) + '%';
+  }
+
+  bool isTextFormat() {
+    return !title.endsWith(".pdf");
   }
 
   Map toJson() => {

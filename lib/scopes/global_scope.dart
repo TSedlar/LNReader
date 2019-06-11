@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
-import 'package:ln_reader/util/net/global_web_view.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/util/ui/themes.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,7 +11,7 @@ import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/novel/sources/novel_planet.dart';
 import 'package:ln_reader/util/observable.dart';
 
-final timeoutLength = Duration(seconds: 40);
+final timeoutLength = Duration(seconds: 10);
 
 final Map<String, LNSource> sources = Map.fromIterable(
   [
@@ -32,6 +31,7 @@ final homeContext = ObservableValue<BuildContext>();
 // keep readerMode off by default..? would respect potential ads and trouble
 // if it arose with Apple/Google, even though we are not in control
 // of the content hosted on the sites..
+bool firstRun = true;
 bool _defaultReaderMode = true; // similar to chrome/safari "article mode"
 double _defaultReaderFontSize = 14.0; // small size
 String _defaultFontFamily = 'Barlow'; // included asset font
@@ -42,8 +42,6 @@ Map<String, String> _defaultTheme = Themes.deepBlue;
 
 // START OBSERVABLE VALUES
 // - Used for global changes and persistent storage
-
-final loading = ObservableValue<bool>(true);
 
 final source = ObservableValue<LNSource>(sources.values.first);
 
@@ -78,9 +76,6 @@ startWatcher() async {
     source.readPreviews.listen((_) => writeToFile());
     source.favorites.listen((_) => writeToFile());
   });
-
-  // Sync cookies
-  GlobalWebView.cookieCache.listen((_) => writeToFile());
 }
 
 writeToFile() async {
@@ -120,11 +115,6 @@ writeToFile() async {
     data['sources'][sourceId] = sourceData;
   });
 
-  // Set cookie data
-  GlobalWebView.cookieCache.val.forEach((host, cookies) {
-    data['cookies'][host] = cookies;
-  });
-
   // Write to local file
   jsonDest.writeAsStringSync(json.encode(data));
   print('synced');
@@ -136,6 +126,7 @@ readFromFile() async {
   final jsonExists = await jsonDest.exists();
 
   if (jsonExists) {
+    firstRun = false;
     final jsonString = jsonDest.readAsStringSync();
     final data = json.decode(jsonString);
 
@@ -189,17 +180,14 @@ readFromFile() async {
         }
       });
     }
+  }
+}
 
-    // Set cookie data
-    if (data['cookies'] != null) {
-      data['cookies'].forEach((host, cookies) {
-        final Map<String, String> cookieMap = {};
-        cookies.forEach((k, v) => cookieMap[k.toString()] = v.toString());
-        GlobalWebView.cookieCache.val[host] = cookieMap;
-      });
-
-      print(GlobalWebView.cookieCache.val);
-    }
+deleteFile() async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final jsonDest = File(appDir.path + _dataFile);
+  if (await jsonDest.exists()) {
+    await jsonDest.delete();
   }
 }
 
