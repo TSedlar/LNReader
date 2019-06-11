@@ -24,6 +24,8 @@ import WebKit
             (call: FlutterMethodCall, result: @escaping FlutterResult) -> Void in
             if call.method == "getCookies" {
                 self.getCookies(call, result)
+            } else if call.method == "clearCookies" {
+                self.clearCookies()
             }
         })
     }
@@ -52,6 +54,24 @@ import WebKit
         } else {
             print("cookie store unsupported on iOS <11.0")
             result(cookieMap);
+            // Fallback on earlier versions
+        }
+    }
+    
+    private func clearCookies() {
+        HTTPCookieStorage.shared.removeCookies(since: Date.distantPast)
+        
+        print("[WebCacheCleaner] All cookies deleted")
+        
+        if #available(iOS 9.0, *) {
+            WKWebsiteDataStore.default().fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
+                records.forEach { record in
+                    WKWebsiteDataStore.default().removeData(ofTypes: record.dataTypes, for: [record], completionHandler: {})
+                    print("[WebCacheCleaner] Record \(record) deleted")
+                }
+            }
+        } else {
+            print("Unabled to delete data on iOS < 9.0")
             // Fallback on earlier versions
         }
     }
