@@ -10,8 +10,6 @@ typedef ElementMapper = Widget Function(
 });
 
 class HtmlRenderer {
-  static final _sentenceSplitter =
-      RegExp('((([A-Za-z0-9.?!]+(((?<!Mrs?)\\.)|\\?|\\!) )|("([^"]+)")))');
 
   static const double defaultElementSpacing = 5.0;
   static const defaultLineSpacing = 1.1;
@@ -96,22 +94,6 @@ class HtmlRenderer {
     }
     return null;
   };
-
-  static String _formatText(String content) {
-    return content.splitMapJoin(
-      _sentenceSplitter,
-      onMatch: (m) {
-        String matched = m.group(0).trimRight();
-        if (matched.endsWith('"')) {
-          final spaceCount = matched.split(' ').length;
-          return spaceCount > 2 ? '\n$matched\n' : '$matched ';
-        } else {
-          return '$matched\n';
-        }
-      },
-      onNonMatch: (s) => s.trimLeft(),
-    );
-  }
 
   static bool _isNumeric(String str) {
     if (str == null) {
