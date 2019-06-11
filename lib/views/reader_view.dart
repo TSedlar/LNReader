@@ -146,147 +146,166 @@ class _ReaderView extends State<ReaderView> {
       Theme.of(context).textTheme.body1.copyWith(fontSize: 10.0);
 
   Widget _makeReader() {
-    return ListView(
-      controller: controller,
-      children: HtmlRenderer.createChildren(
-        widget.content,
-        theme: ThemeData(
-          textTheme: TextTheme(
-            body1: TextStyle(
-              fontFamily: globals.readerFontFamily.val,
-              fontSize: globals.readerFontSize.val,
-              color: Theme.of(context).textTheme.body1.color,
-            ),
-            body2: TextStyle(
-              fontFamily: globals.readerFontFamily.val,
-              fontSize: globals.readerFontSize.val,
-              color: Theme.of(context).textTheme.body1.color,
-            ),
-            headline: TextStyle(
-              fontFamily: globals.readerFontFamily.val,
-              fontSize: globals.readerFontSize.val * 1.33,
-              color: Theme.of(context).textTheme.headline.color,
-            ),
-            title: TextStyle(
-              fontFamily: globals.readerFontFamily.val,
-              fontSize: globals.readerFontSize.val * 2,
-              color: Theme.of(context).textTheme.headline.color,
-            ),
-            subhead: TextStyle(
-              fontFamily: globals.readerFontFamily.val,
-              fontSize: globals.readerFontSize.val * 1.175,
-              color: Theme.of(context).textTheme.headline.color,
-            ),
+    final children = HtmlRenderer.createChildren(
+      widget.content,
+      theme: ThemeData(
+        textTheme: TextTheme(
+          body1: TextStyle(
+            fontFamily: globals.readerFontFamily.val,
+            fontSize: globals.readerFontSize.val,
+            color: Theme.of(context).textTheme.body1.color,
+          ),
+          body2: TextStyle(
+            fontFamily: globals.readerFontFamily.val,
+            fontSize: globals.readerFontSize.val,
+            color: Theme.of(context).textTheme.body1.color,
+          ),
+          headline: TextStyle(
+            fontFamily: globals.readerFontFamily.val,
+            fontSize: globals.readerFontSize.val * 1.33,
+            color: Theme.of(context).textTheme.headline.color,
+          ),
+          title: TextStyle(
+            fontFamily: globals.readerFontFamily.val,
+            fontSize: globals.readerFontSize.val * 2,
+            color: Theme.of(context).textTheme.headline.color,
+          ),
+          subhead: TextStyle(
+            fontFamily: globals.readerFontFamily.val,
+            fontSize: globals.readerFontSize.val * 1.175,
+            color: Theme.of(context).textTheme.headline.color,
           ),
         ),
       ),
+    );
+    return ListView.builder(
+      controller: controller,
+      itemCount: children.length,
+      itemBuilder: (ctx, idx) => children[idx],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-          color: Theme.of(context).primaryColor,
-          child: Stack(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  left: 12.0,
-                  right: 12.0,
-                  top: showNavs ? 2.0 : 27.0,
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            showNavs = !showNavs;
+            if (showNavs) {
+              SystemChrome.setEnabledSystemUIOverlays([
+                SystemUiOverlay.top,
+                SystemUiOverlay.bottom,
+              ]);
+            } else {
+              SystemChrome.setEnabledSystemUIOverlays([]);
+            }
+          });
+        },
+        child: Container(
+            color: Theme.of(context).primaryColor,
+            child: Stack(
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 12.0,
+                    right: 12.0,
+                    top: showNavs ? 2.0 : 27.0,
+                  ),
+                  child: _makeReader(),
                 ),
-                child: _makeReader(),
-              ),
-              // This ensures the mini status bar is on top
-              !showNavs
-                  ? Positioned(
-                      left: 0.0,
-                      top: 0.0,
-                      child: Container(
-                        color: Theme.of(context).primaryColor,
-                        child: SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: 25.0,
-                          child: Stack(
-                            children: [
-                              Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(top: 3.0),
-                                  child: Text(
-                                    time,
-                                    style: _smallStyle(),
-                                    textAlign: TextAlign.center,
+                // This ensures the mini status bar is on top
+                !showNavs
+                    ? Positioned(
+                        left: 0.0,
+                        top: 0.0,
+                        child: Container(
+                          color: Theme.of(context).primaryColor,
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width,
+                            height: 25.0,
+                            child: Stack(
+                              children: [
+                                Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.only(top: 3.0),
+                                    child: Text(
+                                      time,
+                                      style: _smallStyle(),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Center(
-                                    child: Padding(
-                                      padding:
-                                          EdgeInsets.only(left: 12.0, top: 3.0),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.class_,
-                                            size: 14.0,
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .body1
-                                                .color,
-                                          ),
-                                          Padding(
-                                            padding: EdgeInsets.only(left: 3.0),
-                                            child: Text(
-                                              (percentRead
-                                                          .toStringAsFixed(1)
-                                                          .toString() +
-                                                      '%') +
-                                                  (timeRemaining != null
-                                                      ? '   ' + timeRemaining
-                                                      : ''),
-                                              style: _smallStyle(),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                            left: 12.0, top: 3.0),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.class_,
+                                              size: 14.0,
+                                              color: Theme.of(context)
+                                                  .textTheme
+                                                  .body1
+                                                  .color,
                                             ),
-                                          ),
-                                        ],
+                                            Padding(
+                                              padding:
+                                                  EdgeInsets.only(left: 3.0),
+                                              child: Text(
+                                                (percentRead
+                                                            .toStringAsFixed(1)
+                                                            .toString() +
+                                                        '%') +
+                                                    (timeRemaining != null
+                                                        ? '   ' + timeRemaining
+                                                        : ''),
+                                                style: _smallStyle(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                          right: 12.0, top: 3.0),
-                                      child: BatteryIndicator(
-                                        style:
-                                            BatteryIndicatorStyle.skeumorphism,
-                                        mainColor: Theme.of(context)
-                                            .textTheme
-                                            .body1
-                                            .color,
-                                        colorful: false,
-                                        showPercentNum: false,
-                                        ratio: 2.0,
-                                        size: 10.0,
+                                    Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                            right: 12.0, top: 3.0),
+                                        child: BatteryIndicator(
+                                          style: BatteryIndicatorStyle
+                                              .skeumorphism,
+                                          mainColor: Theme.of(context)
+                                              .textTheme
+                                              .body1
+                                              .color,
+                                          colorful: false,
+                                          showPercentNum: false,
+                                          ratio: 2.0,
+                                          size: 10.0,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    )
-                  : null,
-            ].where((child) => child != null).toList(),
-          )),
+                      )
+                    : null,
+              ].where((child) => child != null).toList(),
+            )),
+      ),
     );
   }
 }
