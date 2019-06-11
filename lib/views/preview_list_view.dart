@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
+import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/widget/section.dart';
 
 class PreviewListView extends StatefulWidget {
@@ -12,6 +13,8 @@ class PreviewListView extends StatefulWidget {
 }
 
 class _PreviewListView extends State<PreviewListView> {
+  bool loading = false;
+
   @override
   void initState() {
     super.initState();
@@ -19,6 +22,9 @@ class _PreviewListView extends State<PreviewListView> {
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return Loader.create(context);
+    }
     List<Widget> sourceWidgets = [];
     globals.sources.values.forEach((source) {
       if (widget.favorites) {
@@ -31,7 +37,12 @@ class _PreviewListView extends State<PreviewListView> {
           ));
           // Add favorites
           sourceWidgets.addAll(
-            source.makePreviewWidgets(context, source.favorites.val),
+            source.makePreviewWidgets(
+              context,
+              source.favorites.val,
+              onEntryTap: () => setState(() => loading = true),
+              onEntryNavPush: () => setState(() => loading = false),
+            ),
           );
         }
       } else {
@@ -48,7 +59,12 @@ class _PreviewListView extends State<PreviewListView> {
           ));
           // Add recents
           sourceWidgets.addAll(
-            source.makePreviewWidgets(context, source.readPreviews.val),
+            source.makePreviewWidgets(
+              context,
+              source.readPreviews.val,
+              onEntryTap: () => setState(() => loading = true),
+              onEntryNavPush: () => setState(() => loading = false),
+            ),
           );
         }
       }

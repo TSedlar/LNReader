@@ -4,7 +4,7 @@ import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/util/observable.dart';
 
 class LNPreview {
-  LNSource source;
+  String sourceId;
   String name;
   String link;
   String coverURL;
@@ -12,6 +12,8 @@ class LNPreview {
   final lastRead = ObservableValue<LNChapter>();
   final lastReadStamp = ObservableValue<int>(-1);
   final ascending = ObservableValue<bool>(true); // default ascending
+
+  LNSource get source => globals.sources[sourceId];
 
   loadExistingData() {
     int indexMatch = source.readPreviews.val.indexWhere((preview) => preview.link == link);
@@ -78,7 +80,7 @@ class LNPreview {
     // Safely parse json in case of structure change or additions to be added
 
     if (json['source'] != null) {
-      preview.source = globals.sources[json['source']];
+      preview.sourceId = json['source'];
     }
 
     if (json['name'] != null) {

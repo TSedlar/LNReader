@@ -243,7 +243,7 @@ class NovelPlanet extends LNSource {
       );
       if (elTitle != null && elCover != null) {
         final preview = LNPreview();
-        preview.source = this;
+        preview.sourceId = this.id;
         preview.name = elTitle.text;
         preview.link = mkurl(elTitle.attributes['href']);
         preview.coverURL = proxiedImage(mkurl(elCover.attributes['src']));
