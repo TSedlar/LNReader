@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ln_reader/util/net/connection_status.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/views/widget/swipeable_route.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
@@ -11,9 +12,11 @@ import 'package:ln_reader/views/entry_view.dart';
 import 'package:ln_reader/views/home_view.dart';
 import 'package:ln_reader/views/landing_view.dart';
 import 'package:ln_reader/views/reader_view.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-_emulateInitialRun() async { // ignore: unused_element
+// ignore: unused_element
+_emulateInitialRun() async {
   print('performing initial review cleanup');
   // Temporarily remove caching to see review performance
   final prefs = await SharedPreferences.getInstance();
@@ -23,12 +26,15 @@ _emulateInitialRun() async { // ignore: unused_element
   WebviewReader.clearCookies();
 
   // Remove saved data
-  await globals.deleteFile();
+  await globals.deleteFiles();
 }
 
 void main() async {
+  // Setup app directory
+  globals.appDir.val = await getApplicationDocumentsDirectory();
+
   // Delete files to simulate iOS/Android first-run review
-  // await _emulateInitialRun(); // comment out when building release
+  await _emulateInitialRun(); // comment out when building release
 
   // Start the watcher for global updates
   await globals.startWatcher();
@@ -38,6 +44,14 @@ void main() async {
     statusBarColor: HexColor(globals.theme.val['navigation']),
     systemNavigationBarColor: HexColor(globals.theme.val['navigation']),
   ));
+
+  ConnectionStatus connection = ConnectionStatus.getInstance();
+
+  connection.connectionChange.listen((online) {
+    globals.offline.val = !online;
+  });
+
+  connection.initialize();
 
   // Start application
   runApp(MainApplication());
@@ -131,6 +145,7 @@ class _MainApplication extends State<MainApplication>
           displayWidget = EntryView(
             preview: args.preview,
             html: args.html,
+            usingCache: args.usingCache,
           );
         } else if (settings.name == '/reader') {
           // Handle ReaderView

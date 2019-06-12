@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
@@ -21,6 +22,9 @@ class _LandingView extends State<LandingView> {
   @override
   void initState() {
     super.initState();
+
+    globals.offline.bind(this);
+
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       if (!globals.firstRun) {
         _navigateToHome();
@@ -29,15 +33,15 @@ class _LandingView extends State<LandingView> {
   }
 
   void _navigateToHome([LNSource source]) async {
-    print('Reading homepage source...');
-
     setState(() {
       checking = true;
     });
 
-    final html = await Retry.exec(context, () {
-      return globals.source.val.fetchPreviews();
-    }, escapable: false);
+    final html = globals.offline.val
+        ? 'offline'
+        : await Retry.exec(context, () {
+            return globals.source.val.fetchPreviews();
+          }, escapable: false);
 
     if (html != null) {
       Navigator.of(context).pushReplacementNamed(
@@ -45,7 +49,7 @@ class _LandingView extends State<LandingView> {
         arguments: HomeArgs(
           poppable: false,
           source: source != null ? source : globals.source.val,
-          html: html,
+          html: html == 'offline' ? null : html,
         ),
       );
       setState(() {
@@ -93,6 +97,8 @@ class _LandingView extends State<LandingView> {
   }
 
   _doCheck(LNSource source) async {
+    globals.source.val = source;
+
     setState(() {
       checking = true;
     });

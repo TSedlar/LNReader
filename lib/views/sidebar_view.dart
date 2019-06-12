@@ -17,6 +17,12 @@ class _SidebarView extends State<SidebarView> {
       'https://github.com/TSedlar/LNReader/blob/master/README.md';
 
   @override
+  void initState() {
+    super.initState();
+    globals.offline.bind(this);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final fgAccent = Theme.of(context)
         .textTheme

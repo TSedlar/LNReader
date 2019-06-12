@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +47,8 @@ abstract class LNSource {
     this.readPreviews = ObservableValue.fromList<LNPreview>([]);
   }
 
+  Directory get dir => Directory(globals.appDir.val.path + '/$id/');
+
   String mkurl(String slug) {
     if (slug.startsWith('http')) {
       return slug;
@@ -70,6 +73,7 @@ abstract class LNSource {
     List<LNPreview> previews, {
     Function() onEntryTap,
     Function() onEntryNavPush,
+    bool offline = true,
   }) {
     final double itemSize = 80;
     // (device_width - (cover_width + padding)) / (chip_width + chip_right_padding)
@@ -78,120 +82,139 @@ abstract class LNSource {
     return previews
         .map((preview) => GestureDetector(
               onTap: () async {
+                if (offline && preview.entry == null) {
+                  return;
+                }
+
                 if (onEntryTap != null) {
                   onEntryTap();
                 }
 
                 preview.loadExistingData();
 
-                final html = await preview.source.fetchEntry(preview);
+                String html;
 
-                if (html != null) {
-                  Navigator.of(globals.homeContext.val).pushNamed(
-                    '/entry',
-                    arguments: EntryArgs(
+                if (!offline && preview.entry == null) {
+                  html = await Retry.exec(
+                    context,
+                    () => preview.source.fetchEntry(preview),
+                  );
+                }
+
+                Navigator.of(globals.homeContext.val).pushNamed(
+                  '/entry',
+                  arguments: EntryArgs(
                       preview: preview,
                       html: html,
-                    ),
-                  );
-                  if (onEntryNavPush != null) {
-                    Future.delayed(Duration(seconds: 2))
-                        .then((_) => onEntryNavPush());
-                  }
-                } else {
-                  print('A good connection is needed for LNReader..');
+                      usingCache: preview.entry != null),
+                );
+
+                if (onEntryNavPush != null) {
+                  Future.delayed(Duration(seconds: 2))
+                      .then((_) => onEntryNavPush());
                 }
               },
-              child: Container(
-                margin: EdgeInsets.only(
-                  left: 4.0,
-                  top: 4.0,
-                  bottom: 4.0,
-                ),
-                width: double.infinity,
-                height: itemSize,
-                decoration: new BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(itemSize / 2),
-                    bottomLeft: Radius.circular(itemSize / 2),
+              child: Opacity(
+                opacity: offline ? (preview.entry != null ? 1.0 : 0.5) : 1.0,
+                child: Container(
+                  margin: EdgeInsets.only(
+                    left: 4.0,
+                    top: 4.0,
+                    bottom: 4.0,
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 7.5, top: 5),
-                      child: ClipRRect(
-                        borderRadius:
-                            BorderRadius.all(Radius.circular(itemSize / 2)),
-                        child: FadeInImage.assetNetwork(
-                          width: itemSize - 10,
-                          height: itemSize - 10,
-                          fadeInDuration: Duration(milliseconds: 250),
-                          placeholder: 'assets/images/blank.png',
-                          image: preview.coverURL,
-                          fit: BoxFit.fill,
+                  width: double.infinity,
+                  height: itemSize,
+                  decoration: new BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(itemSize / 2),
+                      bottomLeft: Radius.circular(itemSize / 2),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(left: 7.5, top: 5),
+                        child: ClipRRect(
+                          borderRadius:
+                              BorderRadius.all(Radius.circular(itemSize / 2)),
+                          child: offline
+                              // TODO: Get cached image
+                              ? Image(
+                                  width: itemSize - 10,
+                                  height: itemSize - 10,
+                                  fit: BoxFit.fill,
+                                  image: AssetImage('assets/images/blank.png'),
+                                )
+                              : FadeInImage.assetNetwork(
+                                  width: itemSize - 10,
+                                  height: itemSize - 10,
+                                  fit: BoxFit.fill,
+                                  fadeInDuration: Duration(milliseconds: 250),
+                                  placeholder: 'assets/images/blank.png',
+                                  image: preview.coverURL,
+                                ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(left: 6.0, top: 8.0),
-                            child: Text(
-                              preview.name,
-                              overflow: TextOverflow.ellipsis,
-                              textScaleFactor: 1.15,
-                              style: TextStyle(
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .headline
-                                      .color),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.only(left: 6.0, top: 8.0),
+                              child: Text(
+                                preview.name,
+                                overflow: TextOverflow.ellipsis,
+                                textScaleFactor: 1.15,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .headline
+                                        .color),
+                              ),
                             ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(left: 4.0),
-                            child: Row(
-                              children: preview.genres
-                                  .sublist(
-                                      0, min(preview.genres.length, maxChips))
-                                  .map((g) => Padding(
-                                      padding: EdgeInsets.only(left: 4.0),
-                                      child: Chip(
-                                        backgroundColor: ColorTool.shade(
-                                          Theme.of(context).backgroundColor,
-                                          0.075,
-                                        ),
-                                        label: Container(
-                                          constraints: BoxConstraints(
-                                              minWidth: 45.0, maxWidth: 45.0),
-                                          child: Center(
-                                            child: Text(
-                                              g,
-                                              textScaleFactor: 0.65,
-                                              overflow: TextOverflow.ellipsis,
+                            Padding(
+                              padding: EdgeInsets.only(left: 4.0),
+                              child: Row(
+                                children: preview.genres
+                                    .sublist(
+                                        0, min(preview.genres.length, maxChips))
+                                    .map((g) => Padding(
+                                        padding: EdgeInsets.only(left: 4.0),
+                                        child: Chip(
+                                          backgroundColor: ColorTool.shade(
+                                            Theme.of(context).backgroundColor,
+                                            0.075,
+                                          ),
+                                          label: Container(
+                                            constraints: BoxConstraints(
+                                                minWidth: 45.0, maxWidth: 45.0),
+                                            child: Center(
+                                              child: Text(
+                                                g,
+                                                textScaleFactor: 0.65,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        labelStyle: Theme.of(context)
-                                            .textTheme
-                                            .body1
-                                            .copyWith(
-                                              color: HexColor(globals.theme
-                                                  .val['foreground_accent']),
-                                            ),
-                                      )))
-                                  .toList(),
+                                          labelStyle: Theme.of(context)
+                                              .textTheme
+                                              .body1
+                                              .copyWith(
+                                                color: HexColor(globals.theme
+                                                    .val['foreground_accent']),
+                                              ),
+                                        )))
+                                    .toList(),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ))
@@ -203,12 +226,14 @@ abstract class LNSource {
     List<LNPreview> previews, {
     Function() onEntryTap,
     Function() onEntryNavPush,
+    bool offline = true,
   }) {
     final previewWidgets = makePreviewWidgets(
       context,
       previews,
       onEntryTap: onEntryTap,
       onEntryNavPush: onEntryNavPush,
+      offline: offline,
     );
     return Padding(
       padding: EdgeInsets.only(top: 4.0),
@@ -226,15 +251,23 @@ abstract class LNSource {
     );
   }
 
-  Future launchView(
+  Future launchView({
     BuildContext context,
+    LNPreview preview,
     LNChapter chapter,
     bool readerMode,
-  ) async {
+    bool offline = true,
+  }) async {
     if (readerMode && chapter.isTextFormat()) {
-      final html = await Retry.exec(context, () {
-        return readFromView(chapter.link);
-      });
+      String html;
+
+      // If we're offline or the chapter is cached, use that content
+      if (offline || chapter.isDownloaded(preview)) {
+        await preview.setChapterData(chapter);
+        html = chapter.content;
+      } else {
+        html = await chapter.download(context, preview);
+      }
 
       if (html != null) {
         Loader.text.val = 'Creating readable content..';
@@ -250,11 +283,35 @@ abstract class LNSource {
 
         return Future.value(true);
       } else {
-        print('Failed to open chapter, nav#pop?');
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+                backgroundColor: Theme.of(context).accentColor,
+                title: Text(
+                  'Failed...',
+                  style: Theme.of(context).textTheme.subtitle,
+                ),
+                content: Text(
+                  'There was an issue opening the chapter',
+                  style: Theme.of(context).textTheme.caption,
+                ),
+                actions: [
+                  MaterialButton(
+                    color: Theme.of(context).primaryColor,
+                    child: Text(
+                      'Okay',
+                      style: Theme.of(context).textTheme.caption,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+        );
         return Future.value(false);
       }
     } else {
-      return WebviewReader.launchExternal(globals.homeContext.val, chapter.link);
+      return WebviewReader.launchExternal(
+          globals.homeContext.val, chapter.link);
     }
   }
 

@@ -130,7 +130,7 @@ class NovelPlanet extends LNSource {
 
         final entry = LNEntry();
 
-        entry.source = source;
+        entry.sourceId = source.id;
 
         if (elTitle != null) {
           entry.name = StringNormalizer.normalize(elTitle.text, true);
@@ -183,7 +183,7 @@ class NovelPlanet extends LNSource {
           elChapters.forEach((elChapter) {
             final chapter = LNChapter();
 
-            chapter.source = source;
+            chapter.sourceId = source.id;
             chapter.index = entry.chapters.length;
 
             chapter.title = StringNormalizer.normalize(elChapter.text, true);
@@ -243,16 +243,20 @@ class NovelPlanet extends LNSource {
       );
       if (elTitle != null && elCover != null) {
         final preview = LNPreview();
+
         preview.sourceId = this.id;
         preview.name = elTitle.text;
         preview.link = mkurl(elTitle.attributes['href']);
         preview.coverURL = proxiedImage(mkurl(elCover.attributes['src']));
+
         if (debug) {
           print(preview.name);
         }
+
         if (elGenres != null) {
           elGenres.forEach((genre) => preview.genres.add(genre.text));
         }
+        
         previews.add(preview);
       }
     });

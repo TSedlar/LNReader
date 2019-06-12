@@ -15,6 +15,7 @@ dependencies:
   intl: ^0.15.8
   http: ^0.12.0+2
   html: ^0.14.0
+  connectivity: ^0.4.3+2
   interactive_webview:
     git: git@github.com:TSedlar/interactive_webview.git
   shared_preferences: ^0.5.3+1

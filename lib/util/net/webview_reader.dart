@@ -45,8 +45,6 @@ class WebviewReader {
 
     final sourceCompleter = Completer<String>();
 
-    Loader.extendedText.val = null;
-
     Loader.text.val = 'Fetching cookies...';
 
     final msgReceiver = view.didReceiveMessage.listen((message) async {
@@ -174,6 +172,7 @@ class WebviewReader {
         return difference < timeoutMillis && !sourceCompleter.isCompleted;
       });
     } catch (err) {
+      Loader.extendedText.val = null;
       msgReceiver.cancel();
       stateChanger.cancel();
       view.loadUrl('about:blank');
@@ -185,6 +184,7 @@ class WebviewReader {
     final timeTaken = DateTime.now().difference(start).inMilliseconds;
     print('source retrieved in: ${timeTaken}ms');
 
+    Loader.extendedText.val = null;
     msgReceiver.cancel();
     stateChanger.cancel();
     view.loadUrl('about:blank');

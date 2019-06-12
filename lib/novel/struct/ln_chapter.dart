@@ -1,8 +1,13 @@
+import 'dart:io';
+
+import 'package:flutter/widgets.dart';
+import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_source.dart';
+import 'package:ln_reader/util/ui/retry.dart';
 
 class LNChapter {
-  LNSource source;
+  String sourceId;
   int index;
   String title;
   String date;
@@ -10,6 +15,8 @@ class LNChapter {
   String content;
   double lastPosition = 0;
   double scrollLength = 1;
+
+  LNSource get source => globals.sources[sourceId];
 
   bool nearCompletion() {
     // 95% complete should count as completed.
@@ -20,7 +27,9 @@ class LNChapter {
 
   double percentRead() {
     try {
-      if (scrollLength == 0 || scrollLength == double.nan || scrollLength == double.infinity) {
+      if (scrollLength == 0 ||
+          scrollLength == double.nan ||
+          scrollLength == double.infinity) {
         return 0;
       }
       double percent = ((lastPosition / scrollLength) * 100.0);
@@ -38,6 +47,11 @@ class LNChapter {
     return percentRead().toInt() > 0;
   }
 
+  bool isDownloaded(LNPreview preview) {
+    final chapterFile = File(preview.chapterDir.path + '/$index.json');
+    return chapterFile.existsSync();
+  }
+
   String percentReadString() {
     return percentRead().toStringAsFixed(1) + '%';
   }
@@ -46,23 +60,45 @@ class LNChapter {
     return !title.endsWith(".pdf");
   }
 
-  Map toJson() => {
-        'source': source.id,
-        'index': index,
-        'title': title,
-        'date': date,
-        'link': link,
-        'last_position': lastPosition,
-        'scroll_length': scrollLength,
-      };
+  Future<String> download(BuildContext context, LNPreview preview) async {
+    final html = await Retry.exec(context, () {
+      return source.readFromView(link);
+    });
 
-  static LNChapter fromJson(json) {
+    // Store for offline use
+    if (html != null) {
+      content = html;
+      preview.writeChapterData(this, includeContent: true);
+    }
+
+    return html;
+  }
+
+  Map toJson({bool includeContent = false}) {
+    final json = {
+      'source': source.id,
+      'index': index,
+      'title': title,
+      'date': date,
+      'link': link,
+      'last_position': lastPosition,
+      'scroll_length': scrollLength,
+    };
+
+    if (includeContent) {
+      json['content'] = content;
+    }
+
+    return json;
+  }
+
+  static Future<LNChapter> fromJson(json) async {
     LNChapter chapter = LNChapter();
 
     // Safely parse arguments in case of structure change or additions to be added
 
     if (json['source'] != null) {
-      chapter.source = globals.sources[json['source']];
+      chapter.sourceId = json['source'];
     }
 
     if (json['index'] != null) {
@@ -87,6 +123,10 @@ class LNChapter {
 
     if (json['scroll_length'] != null) {
       chapter.scrollLength = json['scroll_length'];
+    }
+
+    if (json['content'] != null) {
+      chapter.content = json['content'];
     }
 
     return chapter;

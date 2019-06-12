@@ -11,6 +11,7 @@ class AboutView extends StatelessWidget {
     'intl ^0.15.8': 'https://pub.dev/packages/intl',
     'http ^0.12.0+2': 'https://pub.dev/packages/http',
     'html ^0.14.0': 'https://pub.dev/packages/html',
+    'connectivity ^0.4.3+2': 'https://pub.dev/packages/connectivity',
     'interactive_webview ^0.1.1+8': 'https://pub.dev/packages/interactive_webview',
     'battery_indicator ^0.0.2': 'https://pub.dev/packages/battery_indicator',
     'sticky_headers ^0.1.8': 'https://pub.dev/packages/sticky_headers',

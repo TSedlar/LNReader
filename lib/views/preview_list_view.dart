@@ -18,6 +18,7 @@ class _PreviewListView extends State<PreviewListView> {
   @override
   void initState() {
     super.initState();
+    globals.offline.bind(this);
   }
 
   @override
@@ -42,6 +43,7 @@ class _PreviewListView extends State<PreviewListView> {
               source.favorites.val,
               onEntryTap: () => setState(() => loading = true),
               onEntryNavPush: () => setState(() => loading = false),
+              offline: globals.offline.val,
             ),
           );
         }
@@ -64,6 +66,7 @@ class _PreviewListView extends State<PreviewListView> {
               source.readPreviews.val,
               onEntryTap: () => setState(() => loading = true),
               onEntryNavPush: () => setState(() => loading = false),
+              offline: globals.offline.val,
             ),
           );
         }

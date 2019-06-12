@@ -21,10 +21,14 @@ final Map<String, LNSource> sources = Map.fromIterable(
   value: (item) => (item as LNSource),
 );
 
+final appDir = ObservableValue<Directory>();
+
 final String _dataFile = '/persisted_data.json';
 bool _runningWatcher = false; // needs to be non-mutable publicly
 bool get runningWatcher => _runningWatcher;
 final homeContext = ObservableValue<BuildContext>();
+
+final offline = ObservableValue<bool>(true);
 
 // START DEFAULT VALUES
 
@@ -121,11 +125,9 @@ writeToFile() async {
 }
 
 readFromFile() async {
-  final appDir = await getApplicationDocumentsDirectory();
-  final jsonDest = File(appDir.path + _dataFile);
-  final jsonExists = await jsonDest.exists();
+  final jsonDest = File(appDir.val.path + _dataFile);
 
-  if (jsonExists) {
+  if (jsonDest.existsSync()) {
     firstRun = false;
     final jsonString = jsonDest.readAsStringSync();
     final data = json.decode(jsonString);
@@ -163,18 +165,21 @@ readFromFile() async {
         if (source != null) {
           // Set source readPreviews variable
           if (source['read_previews'] != null) {
-            source['read_previews'].forEach((preview) {
+            source['read_previews'].forEach((preview) async {
               sources[sourceId]
                   .readPreviews
                   .val
-                  .add(LNPreview.fromJson(preview));
+                  .add(await LNPreview.fromJson(preview));
             });
           }
 
           // Set source favorites variable
           if (source['favorites'] != null) {
-            source['favorites'].forEach((favorite) {
-              sources[sourceId].favorites.val.add(LNPreview.fromJson(favorite));
+            source['favorites'].forEach((favorite) async {
+              sources[sourceId]
+                  .favorites
+                  .val
+                  .add(await LNPreview.fromJson(favorite));
             });
           }
         }
@@ -183,12 +188,21 @@ readFromFile() async {
   }
 }
 
-deleteFile() async {
-  final appDir = await getApplicationDocumentsDirectory();
-  final jsonDest = File(appDir.path + _dataFile);
-  if (await jsonDest.exists()) {
+deleteFiles() async {
+  final jsonDest = File(appDir.val.path + _dataFile);
+
+  // Delete settings
+  if (jsonDest.existsSync()) {
     await jsonDest.delete();
   }
+
+  // Delete source files
+  sources.keys.forEach((key) async {
+    final dir = sources[key].dir;
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+    }
+  });
 }
 
 ThemeData createColorTheme() => ThemeData(

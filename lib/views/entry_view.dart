@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:interactive_webview/interactive_webview.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
+import 'package:ln_reader/util/net/connection_status.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:share/share.dart';
@@ -15,42 +17,81 @@ import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/widget/section.dart';
 
 class EntryArgs {
-  EntryArgs({this.preview, this.html});
+  EntryArgs({this.preview, this.html, this.usingCache});
 
   final LNPreview preview;
   final String html;
+  final bool usingCache;
 }
 
 class EntryView extends StatefulWidget {
-  EntryView({Key key, this.preview, this.html}) : super(key: key);
+  EntryView({Key key, this.preview, this.html, this.usingCache})
+      : super(key: key);
 
   final LNPreview preview;
   final String html;
+  final bool usingCache;
 
   @override
   _EntryView createState() => _EntryView();
 }
 
 class _EntryView extends State<EntryView> {
+  String html;
   LNEntry entry;
-  bool readingChapter = false;
+  bool processingAction = false;
+  List<int> selectedChapters = [];
 
   @override
   void initState() {
     super.initState();
+
+    setState(() => html = widget.html);
+
     widget.preview.lastRead.bind(this);
     widget.preview.ascending.bind(this);
     widget.preview.source.favorites.bind(this);
     globals.readerMode.bind(this);
-    SchedulerBinding.instance.addPostFrameCallback((_) async {
-      // Retrieve entry in background
-      final _entry =
-          await LNIsolate.parseEntry(widget.preview.source, widget.html);
+    globals.offline.bind(this);
 
-      // Update entry state
-      setState(() {
-        entry = _entry;
-      });
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      // Set entry if locally cached
+      if (widget.preview.entry != null) {
+        print('Using locally cached entry');
+        setState(() => entry = widget.preview.entry);
+      }
+
+      // Check for updates in background
+      if (!globals.offline.val) {
+        print('Online, updating entry...');
+
+        if (html == null && widget.usingCache) {
+          print('Updating entry...');
+          String fetchedHTML =
+              await widget.preview.source.fetchEntry(widget.preview);
+          if (fetchedHTML != null) {
+            setState(() => html = fetchedHTML);
+          }
+          print('Updated entry');
+        }
+
+        if (html != null) {
+          print('Updated entry from html');
+
+          // Retrieve entry in background
+          final _entry =
+              await LNIsolate.parseEntry(widget.preview.source, html);
+
+          // Set preview entry
+          widget.preview.entry = _entry;
+
+          // Write out the data for offline use
+          widget.preview.writeEntryData(_entry);
+
+          // Update entry state
+          setState(() => entry = _entry);
+        }
+      }
     });
   }
 
@@ -157,10 +198,38 @@ class _EntryView extends State<EntryView> {
     );
   }
 
-  Future _openChapter(LNChapter chapter) {
+  Future _openChapter(LNChapter chapter) async {
+    if (globals.offline.val && !chapter.isDownloaded(widget.preview)) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              backgroundColor: Theme.of(context).accentColor,
+              title: Text(
+                'Offline',
+                style: Theme.of(context).textTheme.subtitle,
+              ),
+              content: Text(
+                'You are offline and the next chapter is not downloaded!',
+                style: Theme.of(context).textTheme.caption,
+              ),
+              actions: [
+                MaterialButton(
+                  color: Theme.of(context).primaryColor,
+                  child: Text(
+                    'Okay',
+                    style: Theme.of(context).textTheme.caption,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+      );
+      return Future.value(false);
+    }
+
     // Start the load interface
     setState(() {
-      readingChapter = true;
+      processingAction = true;
     });
 
     // Ensure chapter is seen and not the same as the one chosen to open
@@ -169,17 +238,84 @@ class _EntryView extends State<EntryView> {
       widget.preview.lastRead.val.lastPosition =
           widget.preview.lastRead.val.scrollLength;
     }
+
     widget.preview.markLastRead(chapter);
-    return chapter.source.launchView(
-      context,
-      chapter,
-      globals.readerMode.val && chapter.source.allowsReaderMode,
-    ).then((_) {
-      setState(() {
-        readingChapter = false;
-      });
-      return _;
-    });
+
+    bool readerMode = globals.readerMode.val && chapter.source.allowsReaderMode;
+
+    final view = await chapter.source.launchView(
+      context: context,
+      preview: widget.preview,
+      chapter: chapter,
+      readerMode: readerMode,
+      offline: globals.offline.val,
+    );
+
+    setState(() => processingAction = false);
+
+    return view;
+  }
+
+  // TODO: make a download queue + view
+  _downloadChapters(List<int> chapters) async {
+    setState(() => processingAction = true);
+
+    final failed = <LNChapter>[];
+    int currentIdx = 1;
+
+    for (final chIdx in chapters) {
+      // Debug
+      print('Downloading $currentIdx/${chapters.length}');
+      Loader.extendedText.val =
+          'Downloading chapter: $currentIdx/${chapters.length}';
+
+      // Convert chapter idx -> LNChapter
+      final chapter = entry.chapters.firstWhere((ch) => ch.index == chIdx);
+
+      // Only download if not downloaded
+      if (!chapter.isDownloaded(widget.preview)) {
+        final source = await chapter.download(context, widget.preview);
+        if (source == null) {
+          // If source is null, this failed to download
+          failed.add(chapter);
+        }
+        
+        // Ensure clean slate so no duplicate chapter downloads
+        InteractiveWebView().loadUrl('about:blank');
+        await Future.delayed(Duration(seconds: 1));
+      }
+
+      currentIdx++;
+    }
+
+    if (failed.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+              backgroundColor: Theme.of(context).accentColor,
+              title: Text(
+                'Failed...',
+                style: Theme.of(context).textTheme.subtitle,
+              ),
+              content: Text(
+                'The ${failed.length} chapters failed to download',
+                style: Theme.of(context).textTheme.caption,
+              ),
+              actions: [
+                MaterialButton(
+                  color: Theme.of(context).primaryColor,
+                  child: Text(
+                    'Okay',
+                    style: Theme.of(context).textTheme.caption,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+      );
+    }
+
+    setState(() => processingAction = false);
   }
 
   Widget _makeChapterCard(LNChapter chapter, {String title, String subtitle}) {
@@ -199,13 +335,45 @@ class _EntryView extends State<EntryView> {
       subtitle = 'Release: ${chapter.date}';
     }
 
-    return GestureDetector(
-      onTap: () => _openChapter(chapter),
+    return Opacity(
+      opacity: globals.offline.val
+          ? (chapter.isDownloaded(widget.preview) ? 1.0 : 0.5)
+          : 1.0,
       child: Card(
-        color: Theme.of(context).primaryColor,
+        color: selectedChapters.contains(chapter.index)
+            ? ColorTool.shade(Theme.of(context).primaryColor, 0.10)
+            : Theme.of(context).primaryColor,
         child: ListTile(
+          onLongPress: () {
+            setState(() {
+              if (selectedChapters.contains(chapter.index)) {
+                selectedChapters.remove(chapter.index);
+              } else {
+                selectedChapters.add(chapter.index);
+              }
+            });
+          },
+          onTap: () {
+            if (selectedChapters.isNotEmpty) {
+              setState(() {
+                if (selectedChapters.contains(chapter.index)) {
+                  selectedChapters.remove(chapter.index);
+                } else {
+                  selectedChapters.add(chapter.index);
+                }
+              });
+            } else {
+              if (globals.offline.val) {
+                if (chapter.isDownloaded(widget.preview)) {
+                  _openChapter(chapter);
+                }
+              } else {
+                _openChapter(chapter);
+              }
+            }
+          },
           title: Text(
-            title,
+            title.replaceFirst(widget.preview.name, '').trimLeft(),
             style: TextStyle(
               decoration: read ? TextDecoration.lineThrough : null,
               color: read
@@ -217,51 +385,69 @@ class _EntryView extends State<EntryView> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Only show downloaded if it isn't read
+              !read && chapter.isDownloaded(widget.preview)
+                  ? Icon(
+                      Icons.cloud_done,
+                      color: Theme.of(context).textTheme.headline.color,
+                    )
+                  : null,
               read
                   ? Icon(
                       Icons.check,
                       color: Theme.of(context).textTheme.headline.color,
                     )
                   : null,
-              Theme(
-                data: Theme.of(context).copyWith(
-                  cardColor:
-                      ColorTool.shade(Theme.of(context).primaryColor, 0.10),
-                ),
-                child: PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: Theme.of(context).textTheme.headline.color,
-                  ),
-                  itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'mark_last_read',
-                          child: Text('Mark last read'),
+              selectedChapters.isNotEmpty
+                  ? null
+                  : Theme(
+                      data: Theme.of(context).copyWith(
+                        cardColor: ColorTool.shade(
+                            Theme.of(context).primaryColor, 0.10),
+                      ),
+                      child: PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: Theme.of(context).textTheme.headline.color,
                         ),
-                        PopupMenuItem(
-                          value: 'open_external',
-                          child: Text('Open in browser'),
-                        ),
-                        PopupMenuItem(
-                          value: 'share_link',
-                          child: Text('Share link'),
-                        ),
-                      ],
-                  onSelected: (action) {
-                    if (action == 'mark_last_read') {
-                      print('Marked last read');
-                      chapter.lastPosition = chapter.scrollLength;
-                      widget.preview.markLastRead(chapter);
-                    } else if (action == 'open_external') {
-                      print('Opening in external browser...');
-                      WebviewReader.launchExternal(context, chapter.link);
-                    } else if (action == 'share_link') {
-                      print('Sharing link...');
-                      Share.share(chapter.link);
-                    }
-                  },
-                ),
-              ),
+                        itemBuilder: (context) => [
+                              globals.offline.val ||
+                                      chapter.isDownloaded(widget.preview)
+                                  ? null
+                                  : PopupMenuItem(
+                                      value: 'download',
+                                      child: Text('Download'),
+                                    ),
+                              PopupMenuItem(
+                                value: 'mark_last_read',
+                                child: Text('Mark last read'),
+                              ),
+                              PopupMenuItem(
+                                value: 'open_external',
+                                child: Text('Open in browser'),
+                              ),
+                              PopupMenuItem(
+                                value: 'share_link',
+                                child: Text('Share link'),
+                              ),
+                            ].where((child) => child != null).toList(),
+                        onSelected: (action) async {
+                          if (action == 'download') {
+                            _downloadChapters([chapter.index]);
+                          } else if (action == 'mark_last_read') {
+                            print('Marked last read');
+                            chapter.lastPosition = chapter.scrollLength;
+                            widget.preview.markLastRead(chapter);
+                          } else if (action == 'open_external') {
+                            print('Opening in external browser...');
+                            WebviewReader.launchExternal(context, chapter.link);
+                          } else if (action == 'share_link') {
+                            print('Sharing link...');
+                            Share.share(chapter.link);
+                          }
+                        },
+                      ),
+                    ),
             ].where((child) => child != null).toList(),
           ),
         ),
@@ -329,7 +515,13 @@ class _EntryView extends State<EntryView> {
           labelStyle: TextStyle(fontSize: 14.0, color: Colors.black),
           onTap: () {
             if (widget.preview.lastRead.seen) {
-              final next = entry.nextChapter(widget.preview.lastRead.val);
+              final next = entry == null
+                  ? null
+                  : widget.preview.lastRead.seen
+                      ? (widget.preview.lastRead.val.nearCompletion()
+                          ? entry.nextChapter(widget.preview.lastRead.val)
+                          : widget.preview.lastRead.val)
+                      : null;
               if (next != null) {
                 _openChapter(next);
               } else {
@@ -338,8 +530,25 @@ class _EntryView extends State<EntryView> {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                        title: Text('Up-to-date'),
-                        content: Text('You have read the latest release'),
+                        backgroundColor: Theme.of(context).accentColor,
+                        title: Text(
+                          'Up to date!',
+                          style: Theme.of(context).textTheme.subtitle,
+                        ),
+                        content: Text(
+                          'There is not another chapter after this',
+                          style: Theme.of(context).textTheme.caption,
+                        ),
+                        actions: [
+                          MaterialButton(
+                            color: Theme.of(context).primaryColor,
+                            child: Text(
+                              'Okay',
+                              style: Theme.of(context).textTheme.caption,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
                       ),
                 );
               }
@@ -366,12 +575,15 @@ class _EntryView extends State<EntryView> {
 
   @override
   Widget build(BuildContext context) {
-    final nextChapter = widget.preview.lastRead.seen
-        ? (widget.preview.lastRead.val.nearCompletion()
-            ? entry.nextChapter(widget.preview.lastRead.val)
-            : widget.preview.lastRead.val)
-        : null;
-    return entry == null || readingChapter
+    final nextChapter = entry == null
+        ? null
+        : widget.preview.lastRead.seen
+            ? (widget.preview.lastRead.val.nearCompletion()
+                ? entry.nextChapter(widget.preview.lastRead.val)
+                : widget.preview.lastRead.val)
+            : null;
+    return (html != null || entry != null) &&
+            (entry == null || processingAction)
         ? Loader.create(context)
         : Scaffold(
             appBar: AppBar(
@@ -379,79 +591,164 @@ class _EntryView extends State<EntryView> {
                 widget.preview.name,
                 style: Theme.of(context).textTheme.title,
               ),
+              actions: [
+                selectedChapters.isEmpty
+                    ? null
+                    : Theme(
+                        data: Theme.of(context).copyWith(
+                          cardColor: ColorTool.shade(
+                              Theme.of(context).primaryColor, 0.10),
+                        ),
+                        child: PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: Theme.of(context).textTheme.headline.color,
+                          ),
+                          itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'mark_read',
+                                  child: Text('Mark read'),
+                                ),
+                                globals.offline.val
+                                    ? null
+                                    : PopupMenuItem(
+                                        value: 'download',
+                                        child: Text('Download'),
+                                      ),
+                                PopupMenuItem(
+                                  value: 'select_all',
+                                  child: Text('Select all'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'cancel',
+                                  child: Text('Cancel'),
+                                ),
+                              ].where((child) => child != null).toList(),
+                          onSelected: (action) async {
+                            if (action == 'mark_read') {
+                              // Remember this is in descending order by default
+                              selectedChapters.sort(
+                                (ch1, ch2) => ch1 - ch2,
+                              );
+                              // Mark chapters read
+                              entry.chapters.where((ch) {
+                                return ch.index == selectedChapters.first;
+                              }).forEach((ch) {
+                                ch.lastPosition = ch.scrollLength;
+                                widget.preview.markLastRead(ch);
+                              });
+                              setState(() {
+                                selectedChapters.clear();
+                              });
+                            } else if (action == 'download') {
+                              _downloadChapters(selectedChapters.toList());
+                              setState(() => selectedChapters.clear());
+                            } else if (action == 'select_all') {
+                              setState(() {
+                                selectedChapters.clear();
+                                selectedChapters.addAll(
+                                  entry.chapters.map((ch) => ch.index),
+                                );
+                              });
+                            } else if (action == 'cancel') {
+                              setState(() => selectedChapters.clear());
+                            }
+                          },
+                        ),
+                      ),
+              ].where((child) => child != null).toList(),
               iconTheme: IconThemeData(
                 color: Theme.of(context).textTheme.headline.color,
               ),
             ),
-            body: Container(
-              color: Theme.of(context).accentColor,
-              child: Padding(
-                padding: EdgeInsets.all(10.0),
-                child: CustomScrollView(
-                  slivers: [
-                    SliverList(
-                      delegate: SliverChildListDelegate([
-                        Column(
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 128,
-                                  height: 166,
-                                  child: Padding(
-                                    padding: EdgeInsets.only(right: 10.0),
-                                    child: ClipRRect(
-                                      borderRadius:
-                                          new BorderRadius.circular(5.0),
-                                      child: FadeInImage.assetNetwork(
-                                        fadeInDuration:
-                                            Duration(milliseconds: 250),
-                                        placeholder: 'assets/images/blank.png',
-                                        image: widget.preview.coverURL,
-                                        fit: BoxFit.fill,
+            body: html == null && entry == null
+                ? ConnectionStatus.createOfflineWidget(context)
+                : Container(
+                    color: Theme.of(context).accentColor,
+                    child: Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverList(
+                            delegate: SliverChildListDelegate([
+                              Column(
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 128,
+                                        height: 166,
+                                        child: Padding(
+                                          padding: EdgeInsets.only(right: 10.0),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                new BorderRadius.circular(5.0),
+                                            child: html == null ||
+                                                    globals.offline.val
+                                                // TODO: load cached image
+                                                ? Image(
+                                                    fit: BoxFit.fill,
+                                                    image: AssetImage(
+                                                      'assets/images/blank.png',
+                                                    ),
+                                                  )
+                                                : FadeInImage.assetNetwork(
+                                                    fadeInDuration: Duration(
+                                                      milliseconds: 250,
+                                                    ),
+                                                    fit: BoxFit.fill,
+                                                    placeholder:
+                                                        'assets/images/blank.png',
+                                                    image:
+                                                        widget.preview.coverURL,
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                      _makeInfo(),
+                                    ],
+                                  ),
+                                  Padding(
+                                    padding:
+                                        EdgeInsets.only(top: 3.0, bottom: 6.0),
+                                    child: Text(
+                                      entry.description.replaceAll(r'\n', '\n'),
+                                      style: TextStyle(
+                                        color: ColorTool.shade(
+                                          HexColor(
+                                            globals
+                                                .theme.val['foreground_accent'],
+                                          ),
+                                          0.25,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                _makeInfo(),
-                              ],
-                            ),
-                            Padding(
-                              padding: EdgeInsets.only(top: 3.0, bottom: 6.0),
-                              child: Text(
-                                entry.description.replaceAll(r'\n', '\n'),
-                                style: TextStyle(
-                                  color: ColorTool.shade(
-                                    HexColor(
-                                      globals.theme.val['foreground_accent'],
-                                    ),
-                                    0.25,
-                                  ),
-                                ),
+                                  nextChapter != null
+                                      ? Column(
+                                          children: [
+                                            Section.create(
+                                                'Continue Reading: ' +
+                                                    (nextChapter.started()
+                                                        ? nextChapter
+                                                            .percentReadString()
+                                                        : '')),
+                                            _makeChapterCard(nextChapter),
+                                          ],
+                                        )
+                                      : null,
+                                  Section.create('Chapters:'),
+                                ].where((w) => w != null).toList(),
                               ),
-                            ),
-                            nextChapter != null
-                                ? Column(
-                                    children: [
-                                      Section.create('Continue Reading: ' +
-                                          (nextChapter.started()
-                                              ? nextChapter.percentReadString()
-                                              : '')),
-                                      _makeChapterCard(nextChapter),
-                                    ],
-                                  )
-                                : null,
-                            Section.create('Chapters:'),
-                          ].where((w) => w != null).toList(),
-                        ),
-                      ]),
+                            ]),
+                          ),
+                          _makeChapterList(),
+                        ],
+                      ),
                     ),
-                    _makeChapterList(),
-                  ],
-                ),
-              ),
-            ),
+                  ),
             floatingActionButton: _makeSpeedDial(),
           );
   }
