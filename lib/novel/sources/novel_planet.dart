@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:html/parser.dart';
+import 'package:http/http.dart' as http;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
+import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/string_normalizer.dart';
 
 class NovelPlanet extends LNSource {
@@ -224,6 +227,47 @@ class NovelPlanet extends LNSource {
     return normalized;
   }
 
+  @override
+  Future<LNDownload> handleNonTextDownload(
+    LNPreview preview,
+    LNChapter chapter,
+  ) async {
+    String lowTitle = chapter.title.toLowerCase();
+    if (lowTitle.endsWith('.pdf')) {
+      final html = await readFromView(chapter.link);
+      if (html != null) {
+        final document = parse(html);
+        final pdfFrame = document.querySelector('#divReadContent iframe');
+        String pdfURL = pdfFrame.attributes['src'];
+        if (pdfURL.contains('drive.google.com')) {
+          if (pdfURL.endsWith('/preview')) {
+            pdfURL = pdfURL.substring(0, pdfURL.length - 7) + 'view';
+          }
+          String gdriveId =
+              RegExp(r'/file/d/(.*)/[A-Za-z]').firstMatch(pdfURL)?.group(1);
+          if (gdriveId != null) {
+            pdfURL = 'https://drive.google.com/uc?id=$gdriveId&export=download';
+
+            final res = await http.get(pdfURL, headers: {
+              'User-Agent': WebviewReader.randomAgent(),
+            });
+
+            final download = LNDownload(type: LNDownloadType.PDF);
+
+            download.pdfPath = download.fileFor(preview, chapter);
+            await download.pdfPath.writeAsBytes(res.bodyBytes);
+
+            return download;
+          }
+        } else {
+          print('NovelPlanet only uses GDrive from what I know?');
+          print('URL: $pdfURL');
+        }
+      }
+    }
+    return null;
+  }
+
   List<LNPreview> _parseTable(dynamic parent, [bool debug = false]) {
     List<LNPreview> previews = [];
     if (parent == null) {
@@ -256,7 +300,7 @@ class NovelPlanet extends LNSource {
         if (elGenres != null) {
           elGenres.forEach((genre) => preview.genres.add(genre.text));
         }
-        
+
         previews.add(preview);
       }
     });

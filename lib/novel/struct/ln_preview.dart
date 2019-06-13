@@ -1,10 +1,17 @@
 import 'dart:convert' as convert;
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:html/parser.dart';
+import 'package:interactive_webview/interactive_webview.dart';
+import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
+import 'package:ln_reader/util/net/pdf2text.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LNPreview {
   String sourceId;
@@ -153,24 +160,15 @@ class LNPreview {
     return entryFile.writeAsString(convert.json.encode(entry.toJson()));
   }
 
-  Future writeChapterData(
-    LNChapter chapter, {
-    bool includeContent = false,
-  }) async {
-    chapterDir.createSync(recursive: true);
-    final chapterFile = File(chapterDir.path + '/${chapter.index}.json');
-    return await chapterFile.writeAsString(
-      convert.json.encode(chapter.toJson(includeContent: includeContent)),
-    );
-  }
-
-  Future setChapterData(LNChapter chapter) async {
-    final chapterFile = File(chapterDir.path + '/${chapter.index}.json');
-    if (chapterFile.existsSync()) {
-      LNChapter offline = await LNChapter.fromJson(
-        convert.json.decode(await chapterFile.readAsString()),
-      );
-      chapter.content = offline.content;
+  Future<String> getChapterContent(LNChapter chapter) async {
+    final chapterFileHTML = File(chapterDir.path + '/${chapter.index}.html');
+    final chapterFilePDF = File(chapterDir.path + '/${chapter.index}.pdf');
+    if (chapterFileHTML.existsSync()) {
+      return await chapterFileHTML.readAsString();
+    } else if (chapterFilePDF.existsSync()) {
+      return await Pdf2Text.convert(this, chapter);
+    } else {
+      return null;
     }
   }
 }

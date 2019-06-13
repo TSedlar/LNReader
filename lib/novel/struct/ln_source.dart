@@ -4,10 +4,12 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
+import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
+import 'package:ln_reader/util/net/pdf2text.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 import 'package:ln_reader/util/ui/color_tool.dart';
@@ -104,9 +106,10 @@ abstract class LNSource {
                 Navigator.of(globals.homeContext.val).pushNamed(
                   '/entry',
                   arguments: EntryArgs(
-                      preview: preview,
-                      html: html,
-                      usingCache: preview.entry != null),
+                    preview: preview,
+                    html: html,
+                    usingCache: preview.entry != null,
+                  ),
                 );
 
                 if (onEntryNavPush != null) {
@@ -258,29 +261,36 @@ abstract class LNSource {
     bool readerMode,
     bool offline = true,
   }) async {
-    if (readerMode && chapter.isTextFormat()) {
-      String html;
-
-      // If we're offline or the chapter is cached, use that content
-      if (offline || chapter.isDownloaded(preview)) {
-        await preview.setChapterData(chapter);
-        html = chapter.content;
-      } else {
-        html = await chapter.download(context, preview);
+    if (readerMode) {
+      print('call: launchView');
+      // Download if we're online and it's not downloaded
+      if (!offline && !chapter.isDownloaded(preview)) {
+        await chapter.download(context, preview);
       }
 
-      if (html != null) {
+      String html = await preview.getChapterContent(chapter);
+
+      bool selfCreated = chapter.isPDFDownloaded(preview);
+
+      if (chapter.isDownloaded(preview)) {
         Loader.text.val = 'Creating readable content..';
 
-        final content = await LNIsolate.makeReaderContent(this, html);
+        final readerContent =
+            selfCreated ? html : await LNIsolate.makeReaderContent(this, html);
 
         Loader.text.val = 'Loading ReaderView!';
 
         Navigator.of(globals.homeContext.val).pushNamed(
           '/reader',
-          arguments: ReaderArgs(chapter: chapter, content: content),
+          arguments: ReaderArgs(
+            chapter: chapter,
+            html: readerContent,
+          ),
         );
 
+        await Future.delayed(Duration(seconds: 2));
+
+        // forceGC();
         return Future.value(true);
       } else {
         showDialog(
@@ -311,7 +321,9 @@ abstract class LNSource {
       }
     } else {
       return WebviewReader.launchExternal(
-          globals.homeContext.val, chapter.link);
+        globals.homeContext.val,
+        chapter.link,
+      );
     }
   }
 
@@ -328,4 +340,9 @@ abstract class LNSource {
   LNEntry parseEntry(LNSource source, String html);
 
   String makeReaderContent(String chapterHTML);
+
+  Future<LNDownload> handleNonTextDownload(
+    LNPreview preview,
+    LNChapter chapter,
+  );
 }

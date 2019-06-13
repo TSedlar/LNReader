@@ -1,10 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/util/ui/retry.dart';
+import 'package:ln_reader/views/widget/loader.dart';
 
 class LNChapter {
   String sourceId;
@@ -12,7 +14,7 @@ class LNChapter {
   String title;
   String date;
   String link;
-  String content;
+
   double lastPosition = 0;
   double scrollLength = 1;
 
@@ -47,9 +49,18 @@ class LNChapter {
     return percentRead().toInt() > 0;
   }
 
-  bool isDownloaded(LNPreview preview) {
-    final chapterFile = File(preview.chapterDir.path + '/$index.json');
+  bool isHTMLDownloaded(LNPreview preview) {
+    final chapterFile = File(preview.chapterDir.path + '/$index.html');
     return chapterFile.existsSync();
+  }
+
+  bool isPDFDownloaded(LNPreview preview) {
+    final chapterFile = File(preview.chapterDir.path + '/$index.pdf');
+    return chapterFile.existsSync();
+  }
+
+  bool isDownloaded(LNPreview preview) {
+    return isHTMLDownloaded(preview) || isPDFDownloaded(preview);
   }
 
   String percentReadString() {
@@ -57,24 +68,43 @@ class LNChapter {
   }
 
   bool isTextFormat() {
-    return !title.endsWith(".pdf");
+    String lowTitle = title.toLowerCase();
+    return !lowTitle.endsWith(".pdf");
   }
 
-  Future<String> download(BuildContext context, LNPreview preview) async {
-    final html = await Retry.exec(context, () {
-      return source.readFromView(link);
-    });
+  Future<LNDownload> download(BuildContext context, LNPreview preview) async {
+    if (isTextFormat()) {
+      Loader.text.val = 'Downloading chapter...';
 
-    // Store for offline use
-    if (html != null) {
-      content = html;
-      preview.writeChapterData(this, includeContent: true);
+      // Expected html
+      final html = await Retry.exec(context, () => source.readFromView(link));
+
+      Loader.text.val = 'Downloaded!';
+
+      // Store for offline use
+      if (html != null) {
+        final download = LNDownload(type: LNDownloadType.HTML);
+        download.htmlPath = download.fileFor(preview, this);
+        await download.htmlPath.writeAsString(html);
+        return download;
+      }
+    } else {
+      Loader.text.val = 'Downloading PDF...';
+      // Probably a pdf, haven't seen epub/etc
+      final data = await Retry.exec(
+        context,
+        () => source.handleNonTextDownload(preview, this),
+      );
+
+      Loader.text.val = 'Downloaded!';
+
+      return data;
     }
-
-    return html;
+    // These is no match or download failed
+    return null;
   }
 
-  Map toJson({bool includeContent = false}) {
+  Map toJson() {
     final json = {
       'source': source.id,
       'index': index,
@@ -84,10 +114,6 @@ class LNChapter {
       'last_position': lastPosition,
       'scroll_length': scrollLength,
     };
-
-    if (includeContent) {
-      json['content'] = content;
-    }
 
     return json;
   }
@@ -123,10 +149,6 @@ class LNChapter {
 
     if (json['scroll_length'] != null) {
       chapter.scrollLength = json['scroll_length'];
-    }
-
-    if (json['content'] != null) {
-      chapter.content = json['content'];
     }
 
     return chapter;

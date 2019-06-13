@@ -1,26 +1,32 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:ln_reader/util/ui/html_renderer.dart';
 import 'package:intl/intl.dart';
 import 'package:battery_indicator/battery_indicator.dart';
+import 'package:ln_reader/util/ui/html_renderer.dart';
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
+import 'package:ln_reader/views/widget/loader.dart';
 
 class ReaderArgs {
-  ReaderArgs({this.chapter, this.content});
+  ReaderArgs({this.chapter, this.html});
 
   final LNChapter chapter;
-  final String content;
+  final String html;
 }
 
 class ReaderView extends StatefulWidget {
-  ReaderView({Key key, this.chapter, this.content}) : super(key: key);
+  ReaderView({
+    Key key,
+    this.chapter,
+    this.html,
+  }) : super(key: key);
 
   final LNChapter chapter;
-  final String content;
+  final String html;
 
   @override
   _ReaderView createState() => _ReaderView();
@@ -59,7 +65,7 @@ class _ReaderView extends State<ReaderView> {
 
     controller = ScrollController();
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
       // debug offsets
       print(
         'start offset = $startOffset / ${controller.position.maxScrollExtent}',
@@ -147,7 +153,7 @@ class _ReaderView extends State<ReaderView> {
 
   Widget _makeReader() {
     final children = HtmlRenderer.createChildren(
-      widget.content,
+      widget.html,
       theme: ThemeData(
         textTheme: TextTheme(
           body1: TextStyle(

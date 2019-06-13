@@ -128,8 +128,6 @@ class WebviewReader {
       restrictedSchemes: [uri.host],
     );
 
-    final randomizer = Random();
-
     final headers = {
       'method': 'GET',
       'scheme': 'https',
@@ -138,7 +136,7 @@ class WebviewReader {
       'cache-control': 'max-age=0',
       'upgrade-insecure-requests': '1',
       'dnt': '1',
-      'user-agent': _userAgents[randomizer.nextInt(_userAgents.length)],
+      'user-agent': randomAgent(),
       'accept':
           'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
       'referer': uri.origin,
@@ -200,6 +198,11 @@ class WebviewReader {
 
   static void clearCookies() {
     _platform.invokeMethod('clearCookies');
+  }
+
+  static String randomAgent() {
+    final randomizer = Random();
+    return _userAgents[randomizer.nextInt(_userAgents.length)];
   }
 }
 

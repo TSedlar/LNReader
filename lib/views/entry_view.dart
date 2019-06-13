@@ -199,7 +199,10 @@ class _EntryView extends State<EntryView> {
   }
 
   Future _openChapter(LNChapter chapter) async {
+    print('call: _openChapter');
+
     if (globals.offline.val && !chapter.isDownloaded(widget.preview)) {
+
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -242,6 +245,8 @@ class _EntryView extends State<EntryView> {
     widget.preview.markLastRead(chapter);
 
     bool readerMode = globals.readerMode.val && chapter.source.allowsReaderMode;
+
+    print('launching view...');
 
     final view = await chapter.source.launchView(
       context: context,

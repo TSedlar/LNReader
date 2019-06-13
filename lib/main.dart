@@ -152,7 +152,7 @@ class _MainApplication extends State<MainApplication>
           final ReaderArgs args = settings.arguments;
           displayWidget = ReaderView(
             chapter: args.chapter,
-            content: args.content,
+            html: args.html,
           );
           fullscreen = true;
         }
