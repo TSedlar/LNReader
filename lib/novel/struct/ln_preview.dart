@@ -1,17 +1,11 @@
 import 'dart:convert' as convert;
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:html/parser.dart';
-import 'package:interactive_webview/interactive_webview.dart';
-import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/util/net/pdf2text.dart';
-import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class LNPreview {
   String sourceId;
@@ -65,7 +59,6 @@ class LNPreview {
       ObservableValue<LNChapter> eLastRead =
           source.readPreviews.val[existingIndex].lastRead;
       eLastRead.val = chapter;
-      eLastRead.listen((newVal) => lastRead.val = newVal);
     } else {
       source.readPreviews.val.add(this);
     }
