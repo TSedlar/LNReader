@@ -9,7 +9,6 @@ import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
-import 'package:ln_reader/util/net/pdf2text.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 import 'package:ln_reader/util/ui/color_tool.dart';

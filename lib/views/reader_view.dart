@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -9,7 +8,6 @@ import 'package:battery_indicator/battery_indicator.dart';
 import 'package:ln_reader/util/ui/html_renderer.dart';
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
-import 'package:ln_reader/views/widget/loader.dart';
 
 class ReaderArgs {
   ReaderArgs({this.chapter, this.html});
