@@ -26,6 +26,7 @@ final appDir = ObservableValue<Directory>();
 final String _dataFile = '/persisted_data.json';
 bool _runningWatcher = false; // needs to be non-mutable publicly
 bool get runningWatcher => _runningWatcher;
+
 final homeContext = ObservableValue<BuildContext>();
 
 final offline = ObservableValue<bool>(true);
@@ -36,6 +37,8 @@ final offline = ObservableValue<bool>(true);
 // if it arose with Apple/Google, even though we are not in control
 // of the content hosted on the sites..
 bool firstRun = true;
+bool _defaultLibHome = false; // Use library as home page instead
+bool _defaultDeleteMode = true; // delete chapters after reading
 bool _defaultReaderMode = true; // similar to chrome/safari "article mode"
 double _defaultReaderFontSize = 14.0; // small size
 String _defaultFontFamily = 'Barlow'; // included asset font
@@ -49,6 +52,8 @@ Map<String, String> _defaultTheme = Themes.deepBlue;
 
 final source = ObservableValue<LNSource>(sources.values.first);
 
+final libHome = ObservableValue<bool>(_defaultLibHome);
+final deleteMode = ObservableValue<bool>(_defaultDeleteMode);
 final readerMode = ObservableValue<bool>(_defaultReaderMode);
 final readerFontFamily = ObservableValue<String>(_defaultFontFamily);
 final readerFontSize = ObservableValue<double>(_defaultReaderFontSize);
@@ -72,6 +77,8 @@ startWatcher() async {
 
   // Bind to all globals for file syncing
   source.listen((_) => writeToFile());
+  libHome.listen((_) => writeToFile());
+  deleteMode.listen((_) => writeToFile());
   readerMode.listen((_) => writeToFile());
   readerFontFamily.listen((_) => writeToFile());
   readerFontSize.listen((_) => writeToFile());
@@ -88,6 +95,8 @@ writeToFile() async {
   final jsonDest = File(appDir.path + _dataFile);
 
   final Map data = {
+    'lib_home': libHome.val,
+    'delete_mode': deleteMode.val,
     'reader_mode': readerMode.val,
     'reader_font_family': readerFontFamily.val,
     'reader_font_size': readerFontSize.val,
@@ -131,6 +140,15 @@ readFromFile() async {
     firstRun = false;
     final jsonString = jsonDest.readAsStringSync();
     final data = json.decode(jsonString);
+    // set libHome variable
+    if (data['lib_home'] != null) {
+      libHome.val = data['lib_home'];
+    }
+
+    // Set deleteMode variable
+    if (data['delete_mode'] != null) {
+      deleteMode.val = data['delete_mode'];
+    }
 
     // Set readerMode variable
     if (data['reader_mode'] != null) {

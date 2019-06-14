@@ -292,6 +292,7 @@ abstract class LNSource {
         Navigator.of(globals.homeContext.val).pushNamed(
           '/reader',
           arguments: ReaderArgs(
+            preview: preview,
             chapter: chapter,
             html: readerContent,
           ),

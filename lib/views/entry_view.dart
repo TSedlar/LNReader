@@ -51,6 +51,7 @@ class _EntryView extends State<EntryView> {
     widget.preview.lastRead.bind(this);
     widget.preview.ascending.bind(this);
     widget.preview.source.favorites.bind(this);
+    globals.deleteMode.bind(this);
     globals.readerMode.bind(this);
     globals.offline.bind(this);
 
@@ -420,7 +421,12 @@ class _EntryView extends State<EntryView> {
                         itemBuilder: (context) => [
                               globals.offline.val ||
                                       chapter.isDownloaded(widget.preview)
-                                  ? null
+                                  ? (chapter.isDownloaded(widget.preview)
+                                      ? PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete'),
+                                        )
+                                      : null)
                                   : PopupMenuItem(
                                       value: 'download',
                                       child: Text('Download'),
@@ -441,6 +447,8 @@ class _EntryView extends State<EntryView> {
                         onSelected: (action) async {
                           if (action == 'download') {
                             _downloadChapters([chapter.index]);
+                          } else if (action == 'delete') {
+                            chapter.deleteFile(widget.preview);
                           } else if (action == 'mark_last_read') {
                             print('Marked last read');
                             chapter.lastPosition = chapter.scrollLength;
@@ -575,6 +583,18 @@ class _EntryView extends State<EntryView> {
               : 'Enable Reader Mode',
           labelStyle: TextStyle(fontSize: 14.0, color: Colors.black),
           onTap: () => globals.readerMode.val = !globals.readerMode.val,
+        ),
+        SpeedDialChild(
+          child: globals.deleteMode.val
+              ? Icon(Icons.restore_from_trash)
+              : Icon(Icons.delete_sweep),
+          backgroundColor:
+              globals.deleteMode.val ? Colors.red[800] : Colors.green[800],
+          label: globals.deleteMode.val
+              ? 'Disable auto deletion'
+              : 'Enable auto deletion',
+          labelStyle: TextStyle(fontSize: 14.0, color: Colors.black),
+          onTap: () => globals.deleteMode.val = !globals.deleteMode.val,
         ),
       ],
     );

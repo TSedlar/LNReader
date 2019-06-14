@@ -5,13 +5,15 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:battery_indicator/battery_indicator.dart';
+import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/util/ui/html_renderer.dart';
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 
 class ReaderArgs {
-  ReaderArgs({this.chapter, this.html});
+  ReaderArgs({this.preview, this.chapter, this.html});
 
+  final LNPreview preview;
   final LNChapter chapter;
   final String html;
 }
@@ -19,10 +21,12 @@ class ReaderArgs {
 class ReaderView extends StatefulWidget {
   ReaderView({
     Key key,
+    this.preview,
     this.chapter,
     this.html,
   }) : super(key: key);
 
+  final LNPreview preview;
   final LNChapter chapter;
   final String html;
 
@@ -112,6 +116,9 @@ class _ReaderView extends State<ReaderView> {
     timeTimer.cancel();
     remainingTimer.cancel();
     globals.writeToFile(); // sync globals upon closing reader
+    if (globals.deleteMode.val && widget.chapter.nearCompletion()) {
+      widget.chapter.deleteFile(widget.preview);
+    }
     super.dispose();
   }
 

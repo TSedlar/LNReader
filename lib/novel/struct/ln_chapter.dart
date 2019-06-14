@@ -63,6 +63,15 @@ class LNChapter {
     return isHTMLDownloaded(preview) || isPDFDownloaded(preview);
   }
 
+  deleteFile(LNPreview preview) {
+    final files = [
+      File(preview.chapterDir.path + '/$index.html'),
+      File(preview.chapterDir.path + '/$index.pdf'),
+    ];
+
+    files.forEach((file) => file.deleteSync());
+  }
+
   String percentReadString() {
     return percentRead().toStringAsFixed(1) + '%';
   }

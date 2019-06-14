@@ -128,8 +128,11 @@ class _MainApplication extends State<MainApplication>
         Widget displayWidget;
         bool fullscreen = false;
         if (settings.name == '/') {
+          final args = settings.arguments as Map;
           transition = false;
-          displayWidget = LandingView();
+          displayWidget = LandingView(
+            forceHome: args != null && args.isNotEmpty && args['force_home'],
+          );
         } else if (settings.name == '/settings') {
           displayWidget = SettingsView();
         } else if (settings.name == '/about') {
@@ -154,6 +157,7 @@ class _MainApplication extends State<MainApplication>
           // Handle ReaderView
           final ReaderArgs args = settings.arguments;
           displayWidget = ReaderView(
+            preview: args.preview,
             chapter: args.chapter,
             html: args.html,
           );

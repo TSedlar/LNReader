@@ -1,17 +1,18 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:interactive_webview/interactive_webview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
-import 'package:ln_reader/util/net/pdf2text.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/retry.dart';
+import 'package:ln_reader/views/preview_list_view.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/home_view.dart';
 
 class LandingView extends StatefulWidget {
-  LandingView({Key key}) : super(key: key);
+  LandingView({Key key, this.forceHome = false}) : super(key: key);
+
+  final bool forceHome;
 
   @override
   _LandingView createState() => _LandingView();
@@ -29,7 +30,22 @@ class _LandingView extends State<LandingView> {
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
       if (!globals.firstRun) {
-        _navigateToHome();
+        if (globals.libHome.val && !widget.forceHome) {
+          await Future.delayed(Duration(seconds: 2));
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => PreviewListView(
+                    favorites: true,
+                    fromLanding: true,
+                  ),
+            ),
+          ).then((_) {
+            _navigateToHome();
+          });
+        } else {
+          _navigateToHome();
+        }
       }
     });
   }

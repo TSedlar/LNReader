@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
+import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/widget/section.dart';
 
 class PreviewListView extends StatefulWidget {
-  PreviewListView({Key key, this.favorites}) : super(key: key);
+  PreviewListView({
+    Key key,
+    this.favorites,
+    this.fromLanding = false,
+  }) : super(key: key);
 
   final bool favorites;
+  final bool fromLanding;
 
   @override
   _PreviewListView createState() => _PreviewListView();
@@ -19,6 +26,7 @@ class _PreviewListView extends State<PreviewListView> {
   void initState() {
     super.initState();
     globals.offline.bind(this);
+    globals.libHome.bind(this);
   }
 
   @override
@@ -26,6 +34,7 @@ class _PreviewListView extends State<PreviewListView> {
     if (loading) {
       return Loader.create(context);
     }
+    globals.homeContext.val = context;
     List<Widget> sourceWidgets = [];
     globals.sources.values.forEach((source) {
       if (widget.favorites) {
@@ -92,6 +101,31 @@ class _PreviewListView extends State<PreviewListView> {
           ),
         ),
       ),
+      floatingActionButton: widget.favorites
+          ? SpeedDial(
+              overlayColor: Theme.of(context).primaryColor,
+              overlayOpacity: 0.2,
+              elevation: 2.0,
+              animatedIcon: AnimatedIcons.menu_close,
+              backgroundColor:
+                  ColorTool.shade(Theme.of(context).primaryColor, 0.10),
+              foregroundColor: Theme.of(context).textTheme.headline.color,
+              children: [
+                SpeedDialChild(
+                  child: Icon(Icons.home),
+                  backgroundColor:
+                      globals.libHome.val ? Colors.red : Colors.green,
+                  label: globals.libHome.val
+                      ? 'Unmark as homepage'
+                      : 'Mark as homepage',
+                  labelStyle: TextStyle(fontSize: 14.0, color: Colors.black),
+                  onTap: () {
+                    globals.libHome.val = !globals.libHome.val;
+                  },
+                ),
+              ],
+            )
+          : null,
     );
   }
 }
