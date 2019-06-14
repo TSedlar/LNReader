@@ -117,9 +117,6 @@ class _MainApplication extends State<MainApplication>
   Widget build(BuildContext context) {
     final theme = globals.createColorTheme();
 
-    // Portrait mode only -- maybe allow tablets to have landscape in the future?
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
     // Create the application
     return MaterialApp(
       title: 'LNReader',

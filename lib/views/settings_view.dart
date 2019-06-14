@@ -14,17 +14,9 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsView extends State<SettingsView> {
-  static String smallParagraph =
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sapien nulla, gravida quis tincidunt eu, vehicula eget eros. Duis semper lectus neque. Praesent porta facilisis tortor eu dapibus. Aenean mattis.';
-  static String medParagraph =
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sapien nulla, gravida quis tincidunt eu, vehicula eget eros. Duis semper lectus neque.';
-  static String lgParagraph =
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sapien nulla.';
-  static String xlParagraph = 'Lorem ipsum dolor sit amet';
-  static String sampleThemeParagraph =
+  static final String sampleParagraph = 'Testing!';
+  static final String sampleThemeParagraph =
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quis auctor libero, nec tristique felis. Aliquam lacus odio, euismod vitae iaculis nec, semper id erat.';
-
-  String sampleParagraph = lgParagraph;
 
   @override
   void initState() {
@@ -34,128 +26,156 @@ class _SettingsView extends State<SettingsView> {
     globals.readerFontSize.bind(this);
   }
 
+  Widget _makeFontCard(String font) => GestureDetector(
+        onTap: () {
+          globals.readerFontFamily.val = font;
+        },
+        child: Card(
+          color: Theme.of(context).primaryColor,
+          child: Center(
+            child: Text(
+              font,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.headline.color,
+                fontFamily: font,
+                fontSize: 12.0,
+              ),
+            ),
+          ),
+        ),
+      );
+
   Widget _makeReaderTab() {
-    return Padding(
-      padding: EdgeInsets.only(left: 9.0, right: 9.0),
-      child: GridView.count(
-        shrinkWrap: true,
-        primary: false,
-        crossAxisCount: 3,
-        childAspectRatio: 2.0,
-        children: Fonts.assetFonts
-            .map((font) => GestureDetector(
-                  onTap: () {
-                    globals.readerFontFamily.val = font;
-                  },
-                  child: Card(
-                    color: Theme.of(context).primaryColor,
-                    child: Center(
-                      child: Text(
-                        font,
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.headline.color,
-                          fontFamily: font,
-                          fontSize: 12.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                ))
-            .toList(),
-      ),
-    );
+    if (MediaQuery.of(context).orientation == Orientation.portrait) {
+      return SingleChildScrollView(
+        child: new StickyHeader(
+          header: Container(
+            color: Theme.of(context).backgroundColor,
+            child: Column(
+              children: [
+                SizedBox(height: 4.0),
+                _makeThemePreview(null, false),
+                _makeReaderSizes(),
+              ],
+            ),
+          ),
+          content: Padding(
+            padding: EdgeInsets.only(left: 9.0, right: 9.0),
+            child: GridView.count(
+              shrinkWrap: true,
+              primary: false,
+              crossAxisCount: 3,
+              childAspectRatio: 2.0,
+              children:
+                  Fonts.assetFonts.map((font) => _makeFontCard(font)).toList(),
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Column(children: [
+        SizedBox(height: 4.0),
+        _makeThemePreview(null, false),
+        _makeReaderSizes(),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(left: 8.0, right: 8.0, bottom: 8.0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: Fonts.assetFonts
+                    .map(
+                      (font) => SizedBox(
+                            width: 100,
+                            child: _makeFontCard(font),
+                          ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+        ),
+      ]);
+    }
   }
 
-  Widget _makeReaderSies() {
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.only(left: 12.0, right: 12.0, top: 1.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: MaterialButton(
-                  child: Text(
-                    'SMALL',
-                    style: TextStyle(
-                      fontSize: 14.0,
-                      fontFamily: globals.readerFontFamily.val,
-                    ),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                  textColor: Theme.of(context).textTheme.headline.color,
-                  onPressed: () {
-                    sampleParagraph = smallParagraph;
-                    globals.readerFontSize.val = 14.0;
-                  },
+  Widget _makeReaderSizes() {
+    final sizeBtnWidth = (MediaQuery.of(context).size.width - 56.0) / 4.0;
+    return SizedBox.fromSize(
+      size: Size(double.infinity, 54.0),
+      child: Padding(
+        padding:
+            EdgeInsets.only(left: 12.0, right: 12.0, top: 1.0, bottom: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            MaterialButton(
+              minWidth: sizeBtnWidth,
+              height: 36.0,
+              child: Text(
+                'SM',
+                style: TextStyle(
+                  fontSize: 14.0,
+                  fontFamily: globals.readerFontFamily.val,
                 ),
               ),
-              SizedBox(width: 12.0),
-              Expanded(
-                child: MaterialButton(
-                  child: Text(
-                    'MED',
-                    style: TextStyle(
-                      fontSize: 18.0,
-                      fontFamily: globals.readerFontFamily.val,
-                    ),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                  textColor: Theme.of(context).textTheme.headline.color,
-                  onPressed: () {
-                    sampleParagraph = medParagraph;
-                    globals.readerFontSize.val = 18.0;
-                  },
+              color: Theme.of(context).primaryColor,
+              textColor: Theme.of(context).textTheme.headline.color,
+              onPressed: () {
+                globals.readerFontSize.val = 14.0;
+              },
+            ),
+            MaterialButton(
+              minWidth: sizeBtnWidth,
+              height: 36.0,
+              child: Text(
+                'MED',
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontFamily: globals.readerFontFamily.val,
                 ),
               ),
-            ],
-          ),
+              color: Theme.of(context).primaryColor,
+              textColor: Theme.of(context).textTheme.headline.color,
+              onPressed: () {
+                globals.readerFontSize.val = 18.0;
+              },
+            ),
+            MaterialButton(
+              minWidth: sizeBtnWidth,
+              height: 36.0,
+              child: Text(
+                'LG',
+                style: TextStyle(
+                  fontSize: 20.0,
+                  fontFamily: globals.readerFontFamily.val,
+                ),
+              ),
+              color: Theme.of(context).primaryColor,
+              textColor: Theme.of(context).textTheme.headline.color,
+              onPressed: () {
+                globals.readerFontSize.val = 20.0;
+              },
+            ),
+            MaterialButton(
+              minWidth: sizeBtnWidth,
+              height: 36.0,
+              child: Text(
+                'XL',
+                style: TextStyle(
+                  fontSize: 24.0,
+                  fontFamily: globals.readerFontFamily.val,
+                ),
+              ),
+              color: Theme.of(context).primaryColor,
+              textColor: Theme.of(context).textTheme.headline.color,
+              onPressed: () {
+                globals.readerFontSize.val = 24.0;
+              },
+            ),
+          ],
         ),
-        Padding(
-          padding: EdgeInsets.only(left: 12.0, right: 12.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: MaterialButton(
-                  child: Text(
-                    'LG',
-                    style: TextStyle(
-                      fontSize: 20.0,
-                      fontFamily: globals.readerFontFamily.val,
-                    ),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                  textColor: Theme.of(context).textTheme.headline.color,
-                  onPressed: () {
-                    sampleParagraph = lgParagraph;
-                    globals.readerFontSize.val = 20.0;
-                  },
-                ),
-              ),
-              SizedBox(width: 12.0),
-              Expanded(
-                child: MaterialButton(
-                  child: Text(
-                    'XL',
-                    style: TextStyle(
-                      fontSize: 24.0,
-                      fontFamily: globals.readerFontFamily.val,
-                    ),
-                  ),
-                  color: Theme.of(context).primaryColor,
-                  textColor: Theme.of(context).textTheme.headline.color,
-                  onPressed: () {
-                    sampleParagraph = xlParagraph;
-                    globals.readerFontSize.val = 24.0;
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -179,7 +199,8 @@ class _SettingsView extends State<SettingsView> {
         child: Card(
           elevation: 12.0,
           color: HexColor(
-              themePreview ? theme['background_accent'] : theme['background']),
+            themePreview ? theme['background_accent'] : theme['background'],
+          ),
           child: Column(
             children: [
               cardTitle != null
@@ -201,12 +222,14 @@ class _SettingsView extends State<SettingsView> {
                     )
                   : null,
               Padding(
-                padding: EdgeInsets.only(
-                  left: 12.0,
-                  right: 12.0,
-                  top: 12.0,
-                  bottom: themePreview ? 6.0 : 12.0,
-                ),
+                padding: themePreview
+                    ? EdgeInsets.only(
+                        left: 12.0,
+                        right: 12.0,
+                        top: 12.0,
+                        bottom: 6.0,
+                      )
+                    : EdgeInsets.all(2.0),
                 child: Card(
                   elevation: 0.0,
                   color: HexColor(theme['background']),
@@ -222,7 +245,10 @@ class _SettingsView extends State<SettingsView> {
               themePreview
                   ? Padding(
                       padding: EdgeInsets.only(
-                          left: 16.0, right: 16.0, bottom: 12.0),
+                        left: 16.0,
+                        right: 16.0,
+                        bottom: 12.0,
+                      ),
                       child: new SizedBox(
                         width: double.infinity,
                         child: MaterialButton(
@@ -259,9 +285,10 @@ class _SettingsView extends State<SettingsView> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Settings', style: TextStyle(
-            color: Theme.of(context).textTheme.title.color,
-          )),
+          title: Text('Settings',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.title.color,
+              )),
           bottom: TabBar(
             labelColor: Theme.of(context).textTheme.title.color,
             unselectedLabelColor: Theme.of(context).textTheme.body1.color,
@@ -276,18 +303,7 @@ class _SettingsView extends State<SettingsView> {
           children: [
             Container(
               color: Theme.of(context).backgroundColor,
-              child: SingleChildScrollView(
-                child: new StickyHeader(
-                  header: Container(
-                    color: Theme.of(context).backgroundColor,
-                    child: Column(children: [
-                      _makeThemePreview(null, false),
-                      _makeReaderSies(),
-                    ]),
-                  ),
-                  content: _makeReaderTab(),
-                ),
-              ),
+              child: _makeReaderTab(),
             ),
             Container(
               color: Theme.of(context).backgroundColor,
