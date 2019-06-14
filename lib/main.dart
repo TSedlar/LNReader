@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ln_reader/util/net/connection_status.dart';
+import 'package:ln_reader/util/net/pdf2text.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/views/widget/swipeable_route.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
@@ -27,6 +28,11 @@ _emulateInitialRun() async {
 
   // Remove saved data
   await globals.deleteFiles();
+
+  // Remove pdf2text dir
+  if (Pdf2Text.dir.existsSync()) {
+    await Pdf2Text.dir.delete(recursive: true);
+  }
 }
 
 void main() async {
@@ -34,7 +40,7 @@ void main() async {
   globals.appDir.val = await getApplicationDocumentsDirectory();
 
   // Delete files to simulate iOS/Android first-run review
-  // await _emulateInitialRun(); // comment out when building release
+  await _emulateInitialRun(); // comment out when building release
 
   // Start the watcher for global updates
   await globals.startWatcher();

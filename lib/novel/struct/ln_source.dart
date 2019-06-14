@@ -21,6 +21,7 @@ import 'package:ln_reader/views/widget/loader.dart';
 abstract class LNSource {
   // repectfully allow only web view if a site owner asks
   bool allowsReaderMode = true;
+
   // Supplied through abstraction
   String id;
   String name;
@@ -29,6 +30,7 @@ abstract class LNSource {
   String logoAsset;
   List<String> tabCategories;
   List<String> genres;
+
   // Set within the constructor
   ObservableValue<List<String>> selectedGenres;
   ObservableValue<List<LNPreview>> favorites;
@@ -142,22 +144,30 @@ abstract class LNSource {
                         child: ClipRRect(
                           borderRadius:
                               BorderRadius.all(Radius.circular(itemSize / 2)),
-                          child: offline
-                              // TODO: Get cached image
+                          child: preview.coverImage != null
                               ? Image(
                                   width: itemSize - 10,
                                   height: itemSize - 10,
                                   fit: BoxFit.fill,
-                                  image: AssetImage('assets/images/blank.png'),
+                                  image: MemoryImage(preview.coverImage),
                                 )
-                              : FadeInImage.assetNetwork(
-                                  width: itemSize - 10,
-                                  height: itemSize - 10,
-                                  fit: BoxFit.fill,
-                                  fadeInDuration: Duration(milliseconds: 250),
-                                  placeholder: 'assets/images/blank.png',
-                                  image: preview.coverURL,
-                                ),
+                              : (offline
+                                  ? Image(
+                                      width: itemSize - 10,
+                                      height: itemSize - 10,
+                                      fit: BoxFit.fill,
+                                      image:
+                                          AssetImage('assets/images/blank.png'),
+                                    )
+                                  : FadeInImage.assetNetwork(
+                                      width: itemSize - 10,
+                                      height: itemSize - 10,
+                                      fit: BoxFit.fill,
+                                      fadeInDuration:
+                                          Duration(milliseconds: 250),
+                                      placeholder: 'assets/images/blank.png',
+                                      image: preview.coverURL,
+                                    )),
                         ),
                       ),
                       Expanded(

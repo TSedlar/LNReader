@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:interactive_webview/interactive_webview.dart';
+import 'package:share/share.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/util/net/connection_status.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
-import 'package:share/share.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
@@ -55,6 +55,9 @@ class _EntryView extends State<EntryView> {
     globals.offline.bind(this);
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
+      // Download and cache the cover image
+      widget.preview.downloadCover();
+
       // Set entry if locally cached
       if (widget.preview.entry != null) {
         print('Using locally cached entry');
@@ -202,7 +205,6 @@ class _EntryView extends State<EntryView> {
     print('call: _openChapter');
 
     if (globals.offline.val && !chapter.isDownloaded(widget.preview)) {
-
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -284,7 +286,7 @@ class _EntryView extends State<EntryView> {
           // If source is null, this failed to download
           failed.add(chapter);
         }
-        
+
         // Ensure clean slate so no duplicate chapter downloads
         InteractiveWebView().loadUrl('about:blank');
         await Future.delayed(Duration(seconds: 1));
@@ -690,25 +692,33 @@ class _EntryView extends State<EntryView> {
                                           child: ClipRRect(
                                             borderRadius:
                                                 new BorderRadius.circular(5.0),
-                                            child: html == null ||
-                                                    globals.offline.val
-                                                // TODO: load cached image
+                                            child: widget.preview.coverImage !=
+                                                    null
                                                 ? Image(
                                                     fit: BoxFit.fill,
-                                                    image: AssetImage(
-                                                      'assets/images/blank.png',
+                                                    image: MemoryImage(
+                                                      widget.preview.coverImage,
                                                     ),
                                                   )
-                                                : FadeInImage.assetNetwork(
-                                                    fadeInDuration: Duration(
-                                                      milliseconds: 250,
-                                                    ),
-                                                    fit: BoxFit.fill,
-                                                    placeholder:
-                                                        'assets/images/blank.png',
-                                                    image:
-                                                        widget.preview.coverURL,
-                                                  ),
+                                                : (html == null ||
+                                                        globals.offline.val
+                                                    ? Image(
+                                                        fit: BoxFit.fill,
+                                                        image: AssetImage(
+                                                          'assets/images/blank.png',
+                                                        ),
+                                                      )
+                                                    : FadeInImage.assetNetwork(
+                                                        fadeInDuration:
+                                                            Duration(
+                                                          milliseconds: 250,
+                                                        ),
+                                                        fit: BoxFit.fill,
+                                                        placeholder:
+                                                            'assets/images/blank.png',
+                                                        image: widget
+                                                            .preview.coverURL,
+                                                      )),
                                           ),
                                         ),
                                       ),

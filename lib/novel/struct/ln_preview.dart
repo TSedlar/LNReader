@@ -1,10 +1,12 @@
 import 'dart:convert' as convert;
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/util/net/pdf2text.dart';
+import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
 
 class LNPreview {
@@ -14,25 +16,40 @@ class LNPreview {
   String coverURL;
   List<String> genres = [];
 
+  List<int> get coverImage {
+    if (coverFile.existsSync()) {
+      print('reading cover image');
+      return coverFile.readAsBytesSync();
+    } else {
+      return null;
+    }
+  }
+
   final lastRead = ObservableValue<LNChapter>();
   final lastReadStamp = ObservableValue<int>(-1);
   final ascending = ObservableValue<bool>(true); // default ascending
 
   LNEntry entry;
 
+  String get safeName {
+    return name.replaceAll(' ', '_');
+  }
+
   LNSource get source => globals.sources[sourceId];
 
-  Directory get dir => Directory(source.dir.path + '/$name/');
+  Directory get dir => Directory(source.dir.path + '/$safeName/');
 
   File get dataFile => File(dir.path + '/data.json');
 
   File get entryFile => File(dir.path + '/entry.json');
 
+  File get coverFile => File(dir.path + '/cover.png');
+
   Directory get chapterDir => Directory(dir.path + '/chapters/');
 
   loadExistingData() {
     int indexMatch =
-        source.readPreviews.val.indexWhere((preview) => preview.link == link);
+    source.readPreviews.val.indexWhere((preview) => preview.link == link);
     if (indexMatch >= 0) {
       LNPreview match = source.readPreviews.val[indexMatch];
       if (match.lastRead.seen) {
@@ -52,9 +69,11 @@ class LNPreview {
 
   markLastRead(LNChapter chapter) {
     lastRead.val = chapter;
-    lastReadStamp.val = DateTime.now().millisecondsSinceEpoch;
+    lastReadStamp.val = DateTime
+        .now()
+        .millisecondsSinceEpoch;
     int existingIndex =
-        source.readPreviews.val.indexWhere((preview) => preview.link == link);
+    source.readPreviews.val.indexWhere((preview) => preview.link == link);
     if (existingIndex >= 0) {
       ObservableValue<LNChapter> eLastRead =
           source.readPreviews.val[existingIndex].lastRead;
@@ -66,7 +85,7 @@ class LNPreview {
 
   bool isFavorite() {
     final idx = source.favorites.val.indexWhere(
-      (preview) => preview.link == link,
+          (preview) => preview.link == link,
     );
     return idx >= 0;
   }
@@ -83,7 +102,31 @@ class LNPreview {
     }
   }
 
-  Map toJson() => {
+  Future<File> downloadCover() async {
+    // Download cover if it's not already downloaded
+    if (!coverFile.existsSync()) {
+      if (globals.offline.val) {
+        // We're offline, no use in attempting download
+        return null;
+      } else {
+        dir.createSync(recursive: true);
+
+        print('caching cover: $coverURL');
+
+        final res = await http.get(coverURL, headers: {
+          'User-Agent': WebviewReader.randomAgent(),
+        });
+
+        print('wrote coverURL');
+        return await coverFile.writeAsBytes(res.bodyBytes);
+      }
+    } else {
+      return coverFile;
+    }
+  }
+
+  Map toJson() =>
+      {
         'source': source.id,
         'name': name,
         'link': link,

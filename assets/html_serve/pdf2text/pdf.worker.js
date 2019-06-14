@@ -2145,7 +2145,7 @@ var store = global[SHARED] || (global[SHARED] = {});
 })('versions', []).push({
   version: core.version,
   mode: __w_pdfjs_require__(31) ? 'pure' : 'global',
-  copyright: '© 2018 Denis Pushkarev (zloirock.ru)'
+  copyright: 'Â© 2018 Denis Pushkarev (zloirock.ru)'
 });
 
 /***/ }),
@@ -36720,7 +36720,7 @@ var getSerifFonts = (0, _util.getLookupTableFactory)(function (t) {
   t['Sylfaen'] = true;
   t['Times'] = true;
   t['Trajan'] = true;
-  t['Trinité'] = true;
+  t['TrinitÃ©'] = true;
   t['Trump Mediaeval'] = true;
   t['Utopia'] = true;
   t['Vale Type'] = true;
