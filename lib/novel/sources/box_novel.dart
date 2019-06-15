@@ -74,15 +74,6 @@ class BoxNovel extends LNSource {
   }
 
   @override
-  Future<LNDownload> handleNonTextDownload(
-    LNPreview preview,
-    LNChapter chapter,
-  ) {
-    // TODO: find a case of BoxNovel hosting non-text content
-    return null;
-  }
-
-  @override
   Map<String, List<LNPreview>> parsePreviews(String html) {
     // sadly LNPreview#genres will not be filled for this site as
     // they do not include it on their home page
@@ -108,9 +99,9 @@ class BoxNovel extends LNSource {
       if (anchor != null && cover != null) {
         final preview = LNPreview();
         preview.sourceId = this.id;
-        preview.link = anchor.attributes['href'];
+        preview.link = mkurl(anchor.attributes['href']);
         preview.name = anchor.attributes['title'];
-        preview.coverURL = cover.attributes['src'];
+        preview.coverURL = proxiedImage(mkurl(cover.attributes['src']));
         updated.add(preview);
       }
     });
@@ -124,9 +115,9 @@ class BoxNovel extends LNSource {
         if (anchor != null && cover != null) {
           final preview = LNPreview();
           preview.sourceId = this.id;
-          preview.link = anchor.attributes['href'];
+          preview.link = mkurl(anchor.attributes['href']);
           preview.name = anchor.attributes['title'];
-          preview.coverURL = cover.attributes['src'];
+          preview.coverURL = proxiedImage(mkurl(cover.attributes['src']));
           popular.add(preview);
         }
       }
@@ -191,7 +182,7 @@ class BoxNovel extends LNSource {
 
     // Parse description
     if (description != null) {
-      entry.description = description.text;
+      entry.description = description.text.trim();
     }
 
     // Parse chapters
@@ -209,7 +200,7 @@ class BoxNovel extends LNSource {
         chapter.index = idx;
 
         if (anchor != null) {
-          chapter.link = anchor.attributes['href'];
+          chapter.link = mkurl(anchor.attributes['href']);
           chapter.title = anchor.text.trim();
         }
 
@@ -236,9 +227,9 @@ class BoxNovel extends LNSource {
         if (anchor != null && cover != null) {
           final preview = LNPreview();
           preview.sourceId = this.id;
-          preview.link = anchor.attributes['href'];
+          preview.link = mkurl(anchor.attributes['href']);
           preview.name = anchor.attributes['title'];
-          preview.coverURL = cover.attributes['src'];
+          preview.coverURL = proxiedImage(mkurl(cover.attributes['src']));
           previews.add(preview);
         }
       });
@@ -258,6 +249,15 @@ class BoxNovel extends LNSource {
       print('normalized...');
       return normalized;
     }
+    return null;
+  }
+
+  @override
+  Future<LNDownload> handleNonTextDownload(
+      LNPreview preview,
+      LNChapter chapter,
+      ) {
+    // TODO: find a case of this source hosting non-text content
     return null;
   }
 }

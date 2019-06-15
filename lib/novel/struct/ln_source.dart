@@ -22,6 +22,9 @@ abstract class LNSource {
   // repectfully allow only web view if a site owner asks
   bool allowsReaderMode = true;
 
+  // If WebViewReader should wait for complete instead of interactive
+  bool needsCompleteLoad = false;
+
   // Supplied through abstraction
   String id;
   String name;
@@ -44,6 +47,8 @@ abstract class LNSource {
     this.logoAsset,
     this.tabCategories,
     this.genres,
+    this.allowsReaderMode = true,
+    this.needsCompleteLoad = false,
   }) {
     this.selectedGenres = ObservableValue.fromList<String>(genres.toList());
     this.favorites = ObservableValue.fromList<LNPreview>([]);
@@ -70,7 +75,11 @@ abstract class LNSource {
     return 'https://images2-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&gadget=a&no_expand=1&resize_h=0&rewriteMime=image%2F*&url=$imgLink&imgmax=10000';
   }
 
-  Future<String> readFromView(String url) => WebviewReader.read(url);
+  Future<String> readFromView(
+    String url, {
+    bool needsCompleteLoad = false,
+  }) =>
+      WebviewReader.read(url, needsCompleteLoad: needsCompleteLoad);
 
   List<Widget> makePreviewWidgets(
     BuildContext context,
@@ -84,7 +93,8 @@ abstract class LNSource {
         ((MediaQuery.of(context).size.width - 170.0) / 49.0).floor();
     return previews.map((preview) {
       final minimal = preview.genres.isEmpty;
-      final double itemSize = minimal ? 48 : 80;
+      final itemSize = minimal ? 48.0 : 80.0;
+      final chipWidth = preview.genres.length == 1 ? -1 : 45.0;
       return GestureDetector(
         onTap: () async {
           if (offline && preview.entry == null) {
@@ -200,8 +210,12 @@ abstract class LNSource {
                                       0.075,
                                     ),
                                     label: Container(
-                                      constraints: BoxConstraints(
-                                          minWidth: 45.0, maxWidth: 45.0),
+                                      constraints: chipWidth <= 0
+                                          ? null
+                                          : BoxConstraints(
+                                              minWidth: chipWidth,
+                                              maxWidth: chipWidth,
+                                            ),
                                       child: Center(
                                         child: Text(
                                           g,

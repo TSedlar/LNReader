@@ -178,6 +178,7 @@ class _EntryView extends State<EntryView> {
       // (device_width - (cover_width + padding)) / (chip_width + chip_right_padding)
       maxChips = ((MediaQuery.of(context).size.width - 235.0) / 41.0).floor();
     }
+    final chipWidth = entry.genres.length == 1 ? -1 : 38.0;
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: entry.genres
@@ -191,8 +192,12 @@ class _EntryView extends State<EntryView> {
                       0.10,
                     ),
                     label: Container(
-                      constraints:
-                          BoxConstraints(minWidth: 38.0, maxWidth: 38.0),
+                      constraints: chipWidth <= 0
+                          ? null
+                          : BoxConstraints(
+                              minWidth: chipWidth,
+                              maxWidth: chipWidth,
+                            ),
                       child: Center(
                         child: Text(
                           g,
@@ -353,7 +358,7 @@ class _EntryView extends State<EntryView> {
       title = chapter.title;
     }
 
-    if (subtitle == null) {
+    if (subtitle == null && chapter.date != null && chapter.date != 'N/A') {
       subtitle = 'Release: ${chapter.date}';
     }
 
@@ -403,7 +408,7 @@ class _EntryView extends State<EntryView> {
                   : Theme.of(context).textTheme.headline.color, // unread,
             ),
           ),
-          subtitle: Text(subtitle),
+          subtitle: subtitle != null ? Text(subtitle) : null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

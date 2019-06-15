@@ -31,13 +31,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/html_serve/pdf2text/index.html
-    - assets/html_serve/pdf2text/pdf.js
-    - assets/html_serve/pdf2text/pdf.worker.js
-    - assets/html_serve/pdf2text/converter.js
     - assets/images/blank.png
-    - assets/images/aggregators/novel_planet.png
-    - assets/images/aggregators/box_novel.png
+    - assets/html_serve/pdf2text/
+    - assets/images/aggregators/
   fonts:
     - family: Abel
       fonts:

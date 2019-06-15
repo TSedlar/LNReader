@@ -53,6 +53,7 @@ class _HomeView extends State<HomeView> {
   List<LNPreview> searchPreviews;
 
   bool get viewable => previews != null || searchPreviews != null;
+
   bool get offline => widget.html == null || globals.offline.val;
 
   @override
@@ -155,7 +156,8 @@ class _HomeView extends State<HomeView> {
       Navigator.pop(context);
     }
 
-    final pusher = replace ? Navigator.pushReplacementNamed : Navigator.pushNamed;
+    final pusher =
+        replace ? Navigator.pushReplacementNamed : Navigator.pushNamed;
 
     return pusher(
       context,
@@ -264,10 +266,12 @@ class _HomeView extends State<HomeView> {
                         ),
                       ]
                     : [
-                        IconButton(
-                          icon: Icon(Icons.filter_list),
-                          onPressed: () => _showCategoryDialog(),
-                        ),
+                        globals.source.val.genres.isEmpty
+                            ? null
+                            : IconButton(
+                                icon: Icon(Icons.filter_list),
+                                onPressed: () => _showCategoryDialog(),
+                              ),
                         IconButton(
                           icon: Icon(searching ? Icons.close : Icons.search),
                           onPressed: () {
@@ -280,7 +284,7 @@ class _HomeView extends State<HomeView> {
                             });
                           },
                         ),
-                      ],
+                      ].where((child) => child != null).toList(),
                 iconTheme: IconThemeData(
                   color: Theme.of(context).textTheme.headline.color,
                 ),

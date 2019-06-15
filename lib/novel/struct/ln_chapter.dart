@@ -90,7 +90,13 @@ class LNChapter {
       Loader.text.val = 'Downloading chapter...';
 
       // Expected html
-      final html = await Retry.exec(context, () => source.readFromView(link));
+      final html = await Retry.exec(
+        context,
+        () => source.readFromView(
+              link,
+              needsCompleteLoad: preview.source.needsCompleteLoad,
+            ),
+      );
 
       Loader.text.val = 'Downloaded!';
 
