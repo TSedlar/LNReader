@@ -40,7 +40,7 @@ void main() async {
   globals.appDir.val = await getApplicationDocumentsDirectory();
 
   // Delete files to simulate iOS/Android first-run review
-  //await _emulateInitialRun(); // comment out when building release
+//  await _emulateInitialRun(); // comment out when building release
 
   // Start the watcher for global updates
   await globals.startWatcher();

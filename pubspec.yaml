@@ -37,6 +37,7 @@ flutter:
     - assets/html_serve/pdf2text/converter.js
     - assets/images/blank.png
     - assets/images/aggregators/novel_planet.png
+    - assets/images/aggregators/box_novel.png
   fonts:
     - family: Abel
       fonts:

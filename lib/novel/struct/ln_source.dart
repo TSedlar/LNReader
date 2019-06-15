@@ -56,10 +56,11 @@ abstract class LNSource {
     if (slug.startsWith('http')) {
       return slug;
     }
-    if (slug.startsWith('/')) {
-      slug = slug.substring(1);
+    String base = this.baseURL;
+    if (base.endsWith('/')) {
+      base = base.substring(0, base.length - 1);
     }
-    return this.baseURL + slug;
+    return base + slug;
   }
 
   String proxiedImage(String imgLink) {
@@ -78,159 +79,157 @@ abstract class LNSource {
     Function() onEntryNavPush,
     bool offline = true,
   }) {
-    final double itemSize = 80;
     // (device_width - (cover_width + padding)) / (chip_width + chip_right_padding)
     final int maxChips =
         ((MediaQuery.of(context).size.width - 170.0) / 49.0).floor();
-    return previews
-        .map((preview) => GestureDetector(
-              onTap: () async {
-                if (offline && preview.entry == null) {
-                  return;
-                }
+    return previews.map((preview) {
+      final minimal = preview.genres.isEmpty;
+      final double itemSize = minimal ? 48 : 80;
+      return GestureDetector(
+        onTap: () async {
+          if (offline && preview.entry == null) {
+            return;
+          }
 
-                if (onEntryTap != null) {
-                  onEntryTap();
-                }
+          if (onEntryTap != null) {
+            onEntryTap();
+          }
 
-                preview.loadExistingData();
+          preview.loadExistingData();
 
-                String html;
+          String html;
 
-                if (!offline && preview.entry == null) {
-                  html = await Retry.exec(
-                    context,
-                    () => preview.source.fetchEntry(preview),
-                  );
-                }
+          if (!offline && preview.entry == null) {
+            html = await Retry.exec(
+              context,
+              () => preview.source.fetchEntry(preview),
+            );
+          }
 
-                Navigator.of(globals.homeContext.val).pushNamed(
-                  '/entry',
-                  arguments: EntryArgs(
-                    preview: preview,
-                    html: html,
-                    usingCache: preview.entry != null,
+          Navigator.of(globals.homeContext.val).pushNamed(
+            '/entry',
+            arguments: EntryArgs(
+              preview: preview,
+              html: html,
+              usingCache: preview.entry != null,
+            ),
+          );
+
+          if (onEntryNavPush != null) {
+            Future.delayed(Duration(seconds: 2)).then((_) => onEntryNavPush());
+          }
+        },
+        child: Opacity(
+          opacity: offline ? (preview.entry != null ? 1.0 : 0.5) : 1.0,
+          child: Container(
+            margin: EdgeInsets.only(
+              left: 4.0,
+              top: 4.0,
+              bottom: 4.0,
+            ),
+            width: double.infinity,
+            height: itemSize,
+            decoration: new BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(itemSize / 2),
+                bottomLeft: Radius.circular(itemSize / 2),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(left: 7.5, top: 5),
+                  child: ClipRRect(
+                    borderRadius:
+                        BorderRadius.all(Radius.circular(itemSize / 2)),
+                    child: preview.coverImage != null
+                        ? Image(
+                            width: itemSize - 10,
+                            height: itemSize - 10,
+                            fit: BoxFit.fill,
+                            image: MemoryImage(preview.coverImage),
+                          )
+                        : (offline
+                            ? Image(
+                                width: itemSize - 10,
+                                height: itemSize - 10,
+                                fit: BoxFit.fill,
+                                image: AssetImage('assets/images/blank.png'),
+                              )
+                            : FadeInImage.assetNetwork(
+                                width: itemSize - 10,
+                                height: itemSize - 10,
+                                fit: BoxFit.fill,
+                                fadeInDuration: Duration(milliseconds: 250),
+                                placeholder: 'assets/images/blank.png',
+                                image: preview.coverURL,
+                              )),
                   ),
-                );
-
-                if (onEntryNavPush != null) {
-                  Future.delayed(Duration(seconds: 2))
-                      .then((_) => onEntryNavPush());
-                }
-              },
-              child: Opacity(
-                opacity: offline ? (preview.entry != null ? 1.0 : 0.5) : 1.0,
-                child: Container(
-                  margin: EdgeInsets.only(
-                    left: 4.0,
-                    top: 4.0,
-                    bottom: 4.0,
-                  ),
-                  width: double.infinity,
-                  height: itemSize,
-                  decoration: new BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(itemSize / 2),
-                      bottomLeft: Radius.circular(itemSize / 2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                ),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: EdgeInsets.only(left: 7.5, top: 5),
-                        child: ClipRRect(
-                          borderRadius:
-                              BorderRadius.all(Radius.circular(itemSize / 2)),
-                          child: preview.coverImage != null
-                              ? Image(
-                                  width: itemSize - 10,
-                                  height: itemSize - 10,
-                                  fit: BoxFit.fill,
-                                  image: MemoryImage(preview.coverImage),
-                                )
-                              : (offline
-                                  ? Image(
-                                      width: itemSize - 10,
-                                      height: itemSize - 10,
-                                      fit: BoxFit.fill,
-                                      image:
-                                          AssetImage('assets/images/blank.png'),
-                                    )
-                                  : FadeInImage.assetNetwork(
-                                      width: itemSize - 10,
-                                      height: itemSize - 10,
-                                      fit: BoxFit.fill,
-                                      fadeInDuration:
-                                          Duration(milliseconds: 250),
-                                      placeholder: 'assets/images/blank.png',
-                                      image: preview.coverURL,
-                                    )),
+                        padding: EdgeInsets.only(
+                          left: minimal ? 10.0 : 6.0,
+                          top: minimal ? 12.0 : 8.0,
+                        ),
+                        child: Text(
+                          preview.name,
+                          overflow: TextOverflow.ellipsis,
+                          textScaleFactor: 1.15,
+                          style: TextStyle(
+                              color:
+                                  Theme.of(context).textTheme.headline.color),
                         ),
                       ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.only(left: 6.0, top: 8.0),
-                              child: Text(
-                                preview.name,
-                                overflow: TextOverflow.ellipsis,
-                                textScaleFactor: 1.15,
-                                style: TextStyle(
-                                    color: Theme.of(context)
+                      Padding(
+                        padding: EdgeInsets.only(left: 4.0),
+                        child: Row(
+                          children: preview.genres
+                              .sublist(0, min(preview.genres.length, maxChips))
+                              .map((g) => Padding(
+                                  padding: EdgeInsets.only(left: 4.0),
+                                  child: Chip(
+                                    backgroundColor: ColorTool.shade(
+                                      Theme.of(context).backgroundColor,
+                                      0.075,
+                                    ),
+                                    label: Container(
+                                      constraints: BoxConstraints(
+                                          minWidth: 45.0, maxWidth: 45.0),
+                                      child: Center(
+                                        child: Text(
+                                          g,
+                                          textScaleFactor: 0.65,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                    labelStyle: Theme.of(context)
                                         .textTheme
-                                        .headline
-                                        .color),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.only(left: 4.0),
-                              child: Row(
-                                children: preview.genres
-                                    .sublist(
-                                        0, min(preview.genres.length, maxChips))
-                                    .map((g) => Padding(
-                                        padding: EdgeInsets.only(left: 4.0),
-                                        child: Chip(
-                                          backgroundColor: ColorTool.shade(
-                                            Theme.of(context).backgroundColor,
-                                            0.075,
-                                          ),
-                                          label: Container(
-                                            constraints: BoxConstraints(
-                                                minWidth: 45.0, maxWidth: 45.0),
-                                            child: Center(
-                                              child: Text(
-                                                g,
-                                                textScaleFactor: 0.65,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ),
-                                          labelStyle: Theme.of(context)
-                                              .textTheme
-                                              .body1
-                                              .copyWith(
-                                                color: HexColor(globals.theme
-                                                    .val['foreground_accent']),
-                                              ),
-                                        )))
-                                    .toList(),
-                              ),
-                            ),
-                          ],
+                                        .body1
+                                        .copyWith(
+                                          color: HexColor(globals
+                                              .theme.val['foreground_accent']),
+                                        ),
+                                  )))
+                              .toList(),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ))
-        .toList();
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
   }
 
   Widget makePreviewList(
@@ -341,7 +340,7 @@ abstract class LNSource {
 
   Map<String, List<LNPreview>> parsePreviews(String html);
 
-  Future<String> search(String query, List<String> genre);
+  Future<String> search(String query, List<String> genres);
 
   List<LNPreview> parseSearchPreviews(String html);
 

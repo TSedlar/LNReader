@@ -84,13 +84,13 @@ class NovelPlanet extends LNSource {
   }
 
   @override
-  Future<String> search(String query, List<String> genre) {
+  Future<String> search(String query, List<String> genres) {
     final List<String> args = [];
     if (query != null) {
       args.add('name=' + query);
     }
-    if (genre != null && genre.isNotEmpty) {
-      args.add(genre.join(','));
+    if (genres != null && genres.isNotEmpty) {
+      args.add(genres.join(','));
     }
     args.add('order=mostpopular');
     final searchURL = mkurl('NovelList?' + args.join('&'));
@@ -220,11 +220,15 @@ class NovelPlanet extends LNSource {
     final document = parse(chapterHTML);
     print('parsed reader document...');
     final content = document.querySelector('#divReadContent');
-    print('parsed reader document content.......');
-    print('normalizing document reader...');
-    String normalized = StringNormalizer.normalize(content.innerHtml);
-    print('normalized...');
-    return normalized;
+    if (content != null) {
+      print('parsed reader document content.......');
+      print('normalizing document reader...');
+      String normalized = StringNormalizer.normalize(content.innerHtml);
+      print('normalized...');
+      return normalized;
+    } else {
+      return null;
+    }
   }
 
   @override

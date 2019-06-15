@@ -3,6 +3,7 @@ library globals;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:ln_reader/novel/sources/box_novel.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/util/ui/themes.dart';
@@ -16,6 +17,7 @@ final timeoutLength = Duration(seconds: 10);
 final Map<String, LNSource> sources = Map.fromIterable(
   [
     NovelPlanet(),
+    BoxNovel(),
   ],
   key: (item) => (item as LNSource).id,
   value: (item) => (item as LNSource),

@@ -132,29 +132,39 @@ class _EntryView extends State<EntryView> {
                 1: FlexColumnWidth(60),
               },
               children: [
-                TableRow(children: [
-                  _txt('Authors:'),
-                  _txt(entry.authors.join(', ')),
-                ]),
-                TableRow(children: [
-                  _txt('Aliases:'),
-                  _txt(
-                    entry.aliases.isEmpty ? 'N/A' : entry.aliases.join(', '),
-                  ),
-                ]),
-                TableRow(children: [
-                  _txt('Released:'),
-                  _txt(entry.releaseDate),
-                ]),
-                TableRow(children: [
-                  _txt('Status:', 7.0),
-                  _txt(entry.status, 7.0),
-                ]),
-                TableRow(children: [
-                  _txt('Translator:'),
-                  _txt(entry.translator),
-                ]),
-              ],
+                entry.authors.isEmpty
+                    ? null
+                    : TableRow(children: [
+                        _txt('Authors:'),
+                        _txt(entry.authors.join(', ')),
+                      ]),
+                entry.aliases.isEmpty
+                    ? null
+                    : TableRow(children: [
+                        _txt('Aliases:'),
+                        _txt(
+                          entry.aliases.join(', '),
+                        ),
+                      ]),
+                entry.releaseDate == null || entry.releaseDate == 'N/A'
+                    ? null
+                    : TableRow(children: [
+                        _txt('Released:'),
+                        _txt(entry.releaseDate),
+                      ]),
+                entry.status == null || entry.status == 'N/A'
+                    ? null
+                    : TableRow(children: [
+                        _txt('Status:', 7.0),
+                        _txt(entry.status, 7.0),
+                      ]),
+                entry.translator == null || entry.translator == 'N/A'
+                    ? null
+                    : TableRow(children: [
+                        _txt('Translator:'),
+                        _txt(entry.translator),
+                      ]),
+              ].where((child) => child != null).toList(),
             ),
             _makeGenres(),
           ],
@@ -452,7 +462,9 @@ class _EntryView extends State<EntryView> {
                           if (action == 'download') {
                             _downloadChapters([chapter.index]);
                           } else if (action == 'delete') {
-                            chapter.deleteFile(widget.preview);
+                            setState(() {
+                              chapter.deleteFile(widget.preview);
+                            });
                           } else if (action == 'mark_last_read') {
                             print('Marked last read');
                             chapter.lastPosition = chapter.scrollLength;

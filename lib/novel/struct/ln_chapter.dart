@@ -69,7 +69,11 @@ class LNChapter {
       File(preview.chapterDir.path + '/$index.pdf'),
     ];
 
-    files.forEach((file) => file.deleteSync());
+    files.forEach((file) {
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    });
   }
 
   String percentReadString() {

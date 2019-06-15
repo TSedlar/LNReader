@@ -249,7 +249,10 @@ class _HomeView extends State<HomeView> {
                                           child: Text(source.name),
                                         ))
                                     .toList(),
-                                onChanged: (newSource) {},
+                                onChanged: (newSource) {
+                                  globals.source.val = newSource;
+                                  _refresh();
+                                },
                               ),
                             ),
                           )),
