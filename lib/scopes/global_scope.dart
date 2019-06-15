@@ -38,6 +38,7 @@ final offline = ObservableValue<bool>(true);
 // of the content hosted on the sites..
 bool firstRun = true;
 bool _defaultLibHome = false; // Use library as home page instead
+bool _defaultHideRead = true; // Hide read chapters by default
 bool _defaultDeleteMode = true; // delete chapters after reading
 bool _defaultReaderMode = true; // similar to chrome/safari "article mode"
 double _defaultReaderFontSize = 14.0; // small size
@@ -53,6 +54,7 @@ Map<String, String> _defaultTheme = Themes.deepBlue;
 final source = ObservableValue<LNSource>(sources.values.first);
 
 final libHome = ObservableValue<bool>(_defaultLibHome);
+final hideRead = ObservableValue<bool>(_defaultHideRead);
 final deleteMode = ObservableValue<bool>(_defaultDeleteMode);
 final readerMode = ObservableValue<bool>(_defaultReaderMode);
 final readerFontFamily = ObservableValue<String>(_defaultFontFamily);
@@ -96,6 +98,7 @@ writeToFile() async {
 
   final Map data = {
     'lib_home': libHome.val,
+    'hide_read': hideRead.val,
     'delete_mode': deleteMode.val,
     'reader_mode': readerMode.val,
     'reader_font_family': readerFontFamily.val,
@@ -143,6 +146,11 @@ readFromFile() async {
     // set libHome variable
     if (data['lib_home'] != null) {
       libHome.val = data['lib_home'];
+    }
+
+    // set hideRead variable
+    if (data['hide_read'] != null) {
+      hideRead.val = data['hide_read'];
     }
 
     // Set deleteMode variable

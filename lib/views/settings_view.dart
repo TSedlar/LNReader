@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:ln_reader/util/observable.dart';
+import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/ui/fonts.dart';
@@ -22,6 +24,7 @@ class _SettingsView extends State<SettingsView> {
   void initState() {
     super.initState();
     globals.theme.bind(this);
+    globals.deleteMode.bind(this);
     globals.readerFontFamily.bind(this);
     globals.readerFontSize.bind(this);
   }
@@ -279,21 +282,50 @@ class _SettingsView extends State<SettingsView> {
     return ListView(children: children);
   }
 
+  Widget _mkToggleCard(ObservableValue<bool> observable, String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 6.0),
+      child: Card(
+        color: Theme.of(context).primaryColor,
+        child: CheckboxListTile(
+          activeColor: ColorTool.shade(Theme.of(context).primaryColor, 0.25),
+          title: Text(text, style: Theme.of(context).textTheme.subhead),
+          value: observable.val,
+          onChanged: (v) => observable.val = v,
+        ),
+      ),
+    );
+  }
+
+  Widget _makeGeneralTab() {
+    return Padding(
+      padding: EdgeInsets.all(12.0),
+      child: Column(children: [
+        _mkToggleCard(globals.libHome, 'Use library as home page'),
+        _mkToggleCard(globals.hideRead, 'Hide read chapters'),
+        _mkToggleCard(globals.deleteMode, 'Delete chapter after reading'),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Settings',
-              style: TextStyle(
-                color: Theme.of(context).textTheme.title.color,
-              )),
+          title: Text(
+            'Settings',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.title.color,
+            ),
+          ),
           bottom: TabBar(
             labelColor: Theme.of(context).textTheme.title.color,
             unselectedLabelColor: Theme.of(context).textTheme.body1.color,
             indicatorColor: Theme.of(context).textTheme.subhead.color,
             tabs: [
+              Tab(text: 'General'),
               Tab(text: 'Reader'),
               Tab(text: 'Theme'),
             ],
@@ -301,6 +333,10 @@ class _SettingsView extends State<SettingsView> {
         ),
         body: TabBarView(
           children: [
+            Container(
+              color: Theme.of(context).backgroundColor,
+              child: _makeGeneralTab(),
+            ),
             Container(
               color: Theme.of(context).backgroundColor,
               child: _makeReaderTab(),
