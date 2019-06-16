@@ -118,6 +118,40 @@ class _EntryView extends State<EntryView> {
   }
 
   Widget _makeInfo() {
+    var infoEntries = <MapEntry<String, String>>[];
+
+    if (entry.authors.isNotEmpty) {
+      infoEntries.add(MapEntry('Authors:', entry.authors.join(', ')));
+    }
+
+    if (entry.aliases.isNotEmpty) {
+      infoEntries.add(MapEntry('Aliases:', entry.aliases.join(', ')));
+    }
+
+    if (entry.releaseDate != null && entry.releaseDate != 'N/A') {
+      infoEntries.add(MapEntry('Released:', entry.releaseDate));
+    }
+
+    if (entry.status != null && entry.status != 'N/A') {
+      infoEntries.add(MapEntry('Status:', entry.status));
+    }
+
+    if (entry.translator != null && entry.translator != 'N/A') {
+      infoEntries.add(MapEntry('Translator:', entry.translator));
+    }
+
+    if (entry.views != null && entry.views != 'N/A') {
+      infoEntries.add(MapEntry('Views:', entry.views));
+    }
+
+    if (entry.ranking != null && entry.ranking != 'N/A') {
+      infoEntries.add(MapEntry('Ranking:', entry.ranking));
+    }
+
+    if (entry.lastUpdated != null && entry.lastUpdated != 'N/A') {
+      infoEntries.add(MapEntry('Updated:', entry.lastUpdated));
+    }
+
     return Expanded(
       child: SizedBox(
         width: double.infinity,
@@ -131,40 +165,13 @@ class _EntryView extends State<EntryView> {
                 0: FlexColumnWidth(40),
                 1: FlexColumnWidth(60),
               },
-              children: [
-                entry.authors.isEmpty
-                    ? null
-                    : TableRow(children: [
-                        _txt('Authors:'),
-                        _txt(entry.authors.join(', ')),
-                      ]),
-                entry.aliases.isEmpty
-                    ? null
-                    : TableRow(children: [
-                        _txt('Aliases:'),
-                        _txt(
-                          entry.aliases.join(', '),
-                        ),
-                      ]),
-                entry.releaseDate == null || entry.releaseDate == 'N/A'
-                    ? null
-                    : TableRow(children: [
-                        _txt('Released:'),
-                        _txt(entry.releaseDate),
-                      ]),
-                entry.status == null || entry.status == 'N/A'
-                    ? null
-                    : TableRow(children: [
-                        _txt('Status:', 7.0),
-                        _txt(entry.status, 7.0),
-                      ]),
-                entry.translator == null || entry.translator == 'N/A'
-                    ? null
-                    : TableRow(children: [
-                        _txt('Translator:'),
-                        _txt(entry.translator),
-                      ]),
-              ].where((child) => child != null).toList(),
+              children: infoEntries
+                  .sublist(0, min(5, infoEntries.length))
+                  .map((e) => TableRow(children: [
+                        _txt(e.key),
+                        _txt(e.value),
+                      ]))
+                  .toList(),
             ),
             _makeGenres(),
           ],

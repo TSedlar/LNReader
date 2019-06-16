@@ -14,7 +14,12 @@ class LNPreview {
   String name;
   String link;
   String coverURL;
-  List<String> genres = [];
+
+  // Extra data that may be used by LNEntry
+  Map<String, dynamic> data = {
+    'genres': <String>[],
+    'status': 'N/A',
+  };
 
   List<int> get coverImage {
     if (coverFile.existsSync()) {
@@ -131,7 +136,7 @@ class LNPreview {
         'name': name,
         'link': link,
         'cover_url': coverURL,
-        'genres': genres,
+        'genres': data['genres'],
         'last_read': lastRead.seen ? lastRead.val.toJson() : null,
         'last_read_stamp': lastReadStamp.seen ? lastReadStamp.val : -1,
         'ascending': ascending.seen ? ascending.val : false,
@@ -159,7 +164,7 @@ class LNPreview {
     }
 
     if (json['genres'] != null) {
-      json['genres'].forEach((g) => preview.genres.add(g));
+      json['genres'].forEach((g) => preview.data['genres'].add(g));
     }
 
     if (json['last_read'] != null) {

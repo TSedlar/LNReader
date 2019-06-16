@@ -8,8 +8,10 @@ class LNEntry {
   String name;
   List<String> aliases = [];
   List<String> genres = [];
+  String views = 'N/A';
+  String lastUpdated = 'N/A';
   String releaseDate = 'N/A';
-  int popularity = 0;
+  String ranking = 'N/A';
   List<String> authors = [];
   String status = 'N/A';
   String translator = 'N/A';
@@ -34,8 +36,10 @@ class LNEntry {
       'name': name,
       'aliases': aliases,
       'genres': genres,
+      'views': views,
+      'last_updated': lastUpdated,
       'release_date': releaseDate,
-      'popularity': popularity,
+      'ranking': ranking,
       'authors': authors,
       'status': status,
       'translator': translator,
@@ -67,12 +71,20 @@ class LNEntry {
       json['genres'].forEach((g) => entry.genres.add(g));
     }
 
+    if (json['views'] != null) {
+      entry.views = json['views'];
+    }
+
+    if (json['last_updated'] != null) {
+      entry.lastUpdated = json['last_updated'];
+    }
+
     if (json['release_date'] != null) {
       entry.releaseDate = json['release_date'];
     }
 
-    if (json['popularity'] != null) {
-      entry.popularity = json['popularity'];
+    if (json['ranking'] != null) {
+      entry.ranking = json['ranking'];
     }
 
     if (json['authors'] != null) {

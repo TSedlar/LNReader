@@ -10,9 +10,14 @@ import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/home_view.dart';
 
 class LandingView extends StatefulWidget {
-  LandingView({Key key, this.forceHome = false}) : super(key: key);
+  LandingView({
+    Key key,
+    this.forceHome = false,
+    this.forceChoose = false,
+  }) : super(key: key);
 
   final bool forceHome;
+  final bool forceChoose;
 
   @override
   _LandingView createState() => _LandingView();
@@ -29,7 +34,7 @@ class _LandingView extends State<LandingView> {
     globals.offline.bind(this);
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      if (!globals.firstRun) {
+      if (!globals.firstRun && !widget.forceChoose) {
         if (globals.libHome.val && !widget.forceHome) {
           await Future.delayed(Duration(seconds: 2));
           Navigator.push(
@@ -253,7 +258,7 @@ class _LandingView extends State<LandingView> {
 
   @override
   Widget build(BuildContext context) {
-    return (forceChoose || globals.firstRun) && !checking
+    return (forceChoose || widget.forceChoose || globals.firstRun) && !checking
         ? _createFirstRunPage()
         : Loader.create(context);
   }

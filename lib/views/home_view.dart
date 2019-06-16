@@ -171,37 +171,65 @@ class _HomeView extends State<HomeView> {
     );
   }
 
-  _showCategoryDialog() {
+  Widget _makeCategoryWidget(genre, setState) {
     final selectedGenres = globals.source.val.selectedGenres.val;
+    if (globals.source.val.multiGenre) {
+      return CheckboxListTile(
+          title: Text(genre),
+          value: selectedGenres.contains(genre),
+          onChanged: (val) {
+            setState(() {
+              if (val) {
+                selectedGenres.add(genre);
+              } else {
+                selectedGenres.remove(genre);
+              }
+            });
+          });
+    } else {
+      return Card(
+        color: Theme.of(context).primaryColor,
+        child: ListTile(
+          title: Text(
+            'View $genre',
+            style: Theme.of(context).textTheme.subhead,
+          ),
+          onTap: () {
+            selectedGenres.clear();
+            selectedGenres.add(genre);
+            Navigator.of(context).pop();
+            _refresh(forceSearch: true);
+          },
+        ),
+      );
+    }
+  }
+
+  _showCategoryDialog() {
+    final isMulti = globals.source.val.multiGenre;
     return showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+            backgroundColor: Theme.of(context).accentColor,
             title: Text('Categories'),
             content: SingleChildScrollView(
               child: Column(
                 children: globals.source.val.genres
                     .map(
                       (g) => StatefulBuilder(
-                          builder: (ctx, setState) => CheckboxListTile(
-                              title: Text(g),
-                              value: selectedGenres.contains(g),
-                              onChanged: (val) {
-                                setState(() {
-                                  if (val) {
-                                    selectedGenres.add(g);
-                                  } else {
-                                    selectedGenres.remove(g);
-                                  }
-                                });
-                              })),
+                            builder: (ctx, setState) =>
+                                _makeCategoryWidget(g, setState),
+                          ),
                     )
                     .toList(),
               ),
             ),
           ),
-    ).then(
-      (_) => _refresh(forceSearch: true),
-    );
+    ).then((_) {
+      if (isMulti) {
+        _refresh(forceSearch: true);
+      }
+    });
   }
 
   @override
@@ -236,26 +264,34 @@ class _HomeView extends State<HomeView> {
                               },
                             ),
                           )
-                        : DropdownButtonHideUnderline(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                canvasColor: ColorTool.shade(
-                                    Theme.of(context).primaryColor, 0.10),
-                              ),
-                              child: DropdownButton(
-                                isExpanded: true,
-                                value: globals.source.val,
-                                items: globals.sources.values
-                                    .map((source) => DropdownMenuItem(
-                                          value: source,
-                                          child: Text(source.name),
-                                        ))
-                                    .toList(),
-                                onChanged: (newSource) {
-                                  globals.source.val = newSource;
-                                  _refresh();
-                                },
-                              ),
+                        : Container(
+                            height: kToolbarHeight,
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(0),
+                              title: Row(children: [
+                                Flexible(
+                                  child: Text(
+                                    globals.source.val.name,
+                                    softWrap: true,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.only(left: 2.0, top: 2.0),
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 16.0,
+                                  ),
+                                ),
+                              ]),
+                              onTap: () {
+                                Navigator.of(context).pushReplacementNamed(
+                                  '/',
+                                  arguments: {
+                                    'force_choose': true,
+                                  },
+                                );
+                              },
                             ),
                           )),
                 actions: offline

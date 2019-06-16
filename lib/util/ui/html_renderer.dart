@@ -83,11 +83,13 @@ class HtmlRenderer {
             currentSegment += ' ';
           }
           currentSegment += txt;
-          if (currentSegment.endsWith('?') ||
+          if (currentSegment.endsWith('?') || // Sentences
               currentSegment.endsWith('.') ||
               currentSegment.endsWith('!') ||
-              currentSegment.endsWith('"') ||
-              currentSegment.endsWith("'")) {
+              currentSegment.endsWith('"') || // Quotes
+              currentSegment.endsWith("'") ||
+              currentSegment.endsWith(']') || // Dialog
+              currentSegment.endsWith(')')) {
             segments.add(currentSegment);
             currentSegment = '';
             lastAddedIdx = idx;

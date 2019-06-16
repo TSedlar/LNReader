@@ -93,7 +93,7 @@ class NovelPlanet extends LNSource {
       args.add(genres.join(','));
     }
     args.add('order=mostpopular');
-    final searchURL = mkurl('NovelList?' + args.join('&'));
+    final searchURL = mkurl('/NovelList?' + args.join('&'));
     return readFromView(searchURL);
   }
 
@@ -172,9 +172,7 @@ class NovelPlanet extends LNSource {
                 .replaceAll(')', '');
           }
           if (textNode1 != null) {
-            entry.popularity = int.parse(
-              StringNormalizer.normalize(textNode1.text, true),
-            );
+            entry.ranking = StringNormalizer.normalize(textNode1.text, true);
           }
         }
 
@@ -302,7 +300,7 @@ class NovelPlanet extends LNSource {
         }
 
         if (elGenres != null) {
-          elGenres.forEach((genre) => preview.genres.add(genre.text));
+          elGenres.forEach((genre) => preview.data['genres'].add(genre.text));
         }
 
         previews.add(preview);

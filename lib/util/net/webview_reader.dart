@@ -31,6 +31,7 @@ class WebviewReader {
     String url, {
     Duration timeout = const Duration(milliseconds: 12500),
     bool needsCompleteLoad = false,
+    Future Function(InteractiveWebView view) onLoad,
   }) async {
     final start = DateTime.now();
 
@@ -93,7 +94,10 @@ class WebviewReader {
           if ((!needsCompleteLoad && data['state'] == 'interactive') ||
               data['state'] == 'complete') {
             Loader.text.val = Loader.text.val + '!';
-            await view.evalJavascript('''
+            if (onLoad != null) {
+              await onLoad(view);
+            }
+            view.evalJavascript('''
               var nativeCommunicator = typeof webkit !== 'undefined' ? webkit.messageHandlers.native : window.native;
               nativeCommunicator.postMessage(JSON.stringify({ "source": document.body.innerHTML }));
             ''');
@@ -118,11 +122,13 @@ class WebviewReader {
         }).timeout(timeout, onTimeout: () {});
       } else if (state.type == WebViewState.didFinish) {
         Loader.text.val = 'Finished load!';
-        await view.evalJavascript('''
+        if (onLoad != null) {
+          await onLoad(view);
+        }
+        view.evalJavascript('''
           var nativeCommunicator = typeof webkit !== 'undefined' ? webkit.messageHandlers.native : window.native;
           nativeCommunicator.postMessage(JSON.stringify({ "source": document.body.innerHTML }));
         ''');
-        view.loadUrl('about:blank');
       }
     });
 
@@ -187,6 +193,7 @@ class WebviewReader {
     Loader.extendedText.val = null;
     msgReceiver.cancel();
     stateChanger.cancel();
+
     view.loadUrl('about:blank');
 
     return StringNormalizer.normalize(pageSource);

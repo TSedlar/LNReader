@@ -5,16 +5,16 @@ import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 
 class ASourceTemplate extends LNSource {
-
-  ASourceTemplate() : super(
-    id: 'a_source_template',
-    name: 'A Source Template',
-    lang: 'EN',
-    baseURL: 'http://website.com',
-    logoAsset: 'assets/images/aggregators/logo.png',
-    tabCategories: [],
-    genres: [],
-  );
+  ASourceTemplate()
+      : super(
+          id: 'a_source_template',
+          name: 'A Source Template',
+          lang: 'EN',
+          baseURL: 'http://website.com',
+          logoAsset: 'assets/images/aggregators/logo.png',
+          tabCategories: [],
+          genres: [],
+        );
 
   @override
   Future<String> fetchPreviews() {
@@ -59,7 +59,10 @@ class ASourceTemplate extends LNSource {
   }
 
   @override
-  Future<LNDownload> handleNonTextDownload(LNPreview preview, LNChapter chapter) {
+  Future<LNDownload> handleNonTextDownload(
+    LNPreview preview,
+    LNChapter chapter,
+  ) {
     // TODO: find a case of this source hosting non-text content
     return null;
   }

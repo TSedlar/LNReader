@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:interactive_webview/interactive_webview.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
@@ -24,6 +25,9 @@ abstract class LNSource {
 
   // If WebViewReader should wait for complete instead of interactive
   bool needsCompleteLoad = false;
+
+  // If the dropdown should be checkboxes or buttons
+  bool multiGenre = true;
 
   // Supplied through abstraction
   String id;
@@ -49,8 +53,13 @@ abstract class LNSource {
     this.genres,
     this.allowsReaderMode = true,
     this.needsCompleteLoad = false,
+    this.multiGenre = true,
   }) {
-    this.selectedGenres = ObservableValue.fromList<String>(genres.toList());
+    if (this.multiGenre) {
+      this.selectedGenres = ObservableValue.fromList<String>(genres.toList());
+    } else {
+      this.selectedGenres = ObservableValue.fromList<String>([]);
+    }
     this.favorites = ObservableValue.fromList<LNPreview>([]);
     this.readPreviews = ObservableValue.fromList<LNPreview>([]);
   }
@@ -78,8 +87,13 @@ abstract class LNSource {
   Future<String> readFromView(
     String url, {
     bool needsCompleteLoad = false,
+    Future Function(InteractiveWebView view) onLoad,
   }) =>
-      WebviewReader.read(url, needsCompleteLoad: needsCompleteLoad);
+      WebviewReader.read(
+        url,
+        needsCompleteLoad: needsCompleteLoad,
+        onLoad: onLoad,
+      );
 
   List<Widget> makePreviewWidgets(
     BuildContext context,
@@ -92,9 +106,11 @@ abstract class LNSource {
     final int maxChips =
         ((MediaQuery.of(context).size.width - 170.0) / 49.0).floor();
     return previews.map((preview) {
-      final minimal = preview.genres.isEmpty;
+      final List<String> genres =
+          preview.data.containsKey('genres') ? preview.data['genres'] : [];
+      final minimal = genres.isEmpty;
       final itemSize = minimal ? 48.0 : 80.0;
-      final chipWidth = preview.genres.length == 1 ? -1 : 45.0;
+      final chipWidth = genres.length == 1 ? -1 : 45.0;
       return GestureDetector(
         onTap: () async {
           if (offline && preview.entry == null) {
@@ -186,22 +202,22 @@ abstract class LNSource {
                       Padding(
                         padding: EdgeInsets.only(
                           left: minimal ? 10.0 : 6.0,
-                          top: minimal ? 12.0 : 8.0,
+                          top: minimal ? 14.0 : 8.0,
                         ),
                         child: Text(
                           preview.name,
                           overflow: TextOverflow.ellipsis,
                           textScaleFactor: 1.15,
                           style: TextStyle(
-                              color:
-                                  Theme.of(context).textTheme.headline.color),
+                            color: Theme.of(context).textTheme.headline.color,
+                          ),
                         ),
                       ),
                       Padding(
                         padding: EdgeInsets.only(left: 4.0),
                         child: Row(
-                          children: preview.genres
-                              .sublist(0, min(preview.genres.length, maxChips))
+                          children: genres
+                              .sublist(0, min(genres.length, maxChips))
                               .map((g) => Padding(
                                   padding: EdgeInsets.only(left: 4.0),
                                   child: Chip(

@@ -159,11 +159,9 @@ class BoxNovel extends LNSource {
       // Parse info data
       if (info != null && info.length >= 6) {
         try {
-          entry.popularity = int.parse(
-            RegExp(r'(\b[0-9]+\b)').firstMatch(info[1].text.trim()).group(1),
-          );
+          entry.ranking = RegExp(r'(\b[0-9]+\b)').firstMatch(info[1].text.trim()).group(1);
         } catch (err) {
-          entry.popularity = 0;
+          entry.ranking = 'N/A';
         }
         entry.aliases =
             info[2].text.trim().split(',').map((x) => x.trim()).toList();
