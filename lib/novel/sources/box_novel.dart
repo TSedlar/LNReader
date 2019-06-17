@@ -4,7 +4,6 @@ import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
-import 'package:ln_reader/util/string_normalizer.dart';
 
 class BoxNovel extends LNSource {
   BoxNovel()
@@ -51,8 +50,10 @@ class BoxNovel extends LNSource {
         );
 
   @override
-  Future<String> fetchPreviews() {
-    return readFromView(baseURL);
+  Future<List<String>> fetchPreviews() async {
+    return [
+      await readFromView(baseURL),
+    ];
   }
 
   @override
@@ -74,10 +75,10 @@ class BoxNovel extends LNSource {
   }
 
   @override
-  Map<String, List<LNPreview>> parsePreviews(String html) {
+  Map<String, List<LNPreview>> parsePreviews(List<String> htmlList) {
     // sadly LNPreview#genres will not be filled for this site as
     // they do not include it on their home page
-
+    final html = htmlList.first;
     final document = parse(html);
     final updated = <LNPreview>[];
     final popular = <LNPreview>[];
@@ -149,6 +150,7 @@ class BoxNovel extends LNSource {
     );
     final description = document.querySelector('div[id="editdescription"]');
     final chapters = document.querySelectorAll('li[class*="wp-manga-chapter"]');
+    final hdCover = document.querySelector('div[class*="summary_image"] img');
 
     // Parse popularity/aliases/authors/genres
     if (content != null) {
@@ -159,7 +161,8 @@ class BoxNovel extends LNSource {
       // Parse info data
       if (info != null && info.length >= 6) {
         try {
-          entry.ranking = RegExp(r'(\b[0-9]+\b)').firstMatch(info[1].text.trim()).group(1);
+          entry.ranking =
+              RegExp(r'(\b[0-9]+\b)').firstMatch(info[1].text.trim()).group(1);
         } catch (err) {
           entry.ranking = 'N/A';
         }
@@ -181,6 +184,11 @@ class BoxNovel extends LNSource {
     // Parse description
     if (description != null) {
       entry.description = description.text.trim();
+    }
+
+    // Parse HD Cover
+    if (hdCover != null) {
+      entry.hdCoverURL = mkurl(hdCover.attributes['src']);
     }
 
     // Parse chapters
@@ -217,7 +225,8 @@ class BoxNovel extends LNSource {
   List<LNPreview> parseSearchPreviews(String html) {
     final previews = <LNPreview>[];
     final document = parse(html);
-    final container = document.querySelectorAll('div[class*="c-tabs-item__content"] div[class*="c-image-hover"]');
+    final container = document.querySelectorAll(
+        'div[class*="c-tabs-item__content"] div[class*="c-image-hover"]');
     if (container != null) {
       container.forEach((containerElement) {
         final anchor = containerElement.querySelector('a');
@@ -236,25 +245,10 @@ class BoxNovel extends LNSource {
   }
 
   @override
-  String makeReaderContent(String chapterHTML) {
-    final document = parse(chapterHTML);
-    print('parsed reader document...');
-    final content = document.querySelector('div[class*="read-container"]');
-    if (content != null) {
-      print('parsed reader document content.......');
-      print('normalizing document reader...');
-      String normalized = StringNormalizer.normalize(content.innerHtml);
-      print('normalized...');
-      return normalized;
-    }
-    return null;
-  }
-
-  @override
   Future<LNDownload> handleNonTextDownload(
-      LNPreview preview,
-      LNChapter chapter,
-      ) {
+    LNPreview preview,
+    LNChapter chapter,
+  ) {
     // TODO: find a case of this source hosting non-text content
     return null;
   }

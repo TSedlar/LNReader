@@ -9,17 +9,17 @@ class LNIsolate {
   // START LNSource#parsePreview
   static Future<Map<String, List<LNPreview>>> parsePreviews(
     LNSource source,
-    String html,
+    List<String> htmlList,
   ) {
     Loader.text.val = 'Parsing previews...';
     return compute(_parsePreviews, {
       'source': source.id,
-      'html': html,
+      'html_list': htmlList,
     });
   }
 
   static Map<String, List<LNPreview>> _parsePreviews(Map args) {
-    return globals.sources[args['source']].parsePreviews(args['html']);
+    return globals.sources[args['source']].parsePreviews(args['html_list']);
   }
 
   // START LNSource#parseSearchPreviews

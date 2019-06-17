@@ -7,7 +7,7 @@ import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
-import 'package:ln_reader/util/string_normalizer.dart';
+import 'package:ln_reader/util/string_tool.dart';
 
 class NovelPlanet extends LNSource {
   NovelPlanet()
@@ -65,14 +65,17 @@ class NovelPlanet extends LNSource {
         );
 
   @override
-  Future<String> fetchPreviews() {
-    return readFromView(baseURL);
+  Future<List<String>> fetchPreviews() async {
+    return [
+      await readFromView(baseURL),
+    ];
   }
 
   @override
-  Map<String, List<LNPreview>> parsePreviews(String html) {
+  Map<String, List<LNPreview>> parsePreviews(List<String> htmlList) {
     print('[parsePreviews] parsing html...');
     // print(html); // debug...
+    final html = htmlList.first;
     final document = parse(html);
     final returnData = {
       tabCategories[0]: _parseTable(document.querySelector('#tab-1')),
@@ -136,7 +139,7 @@ class NovelPlanet extends LNSource {
         entry.sourceId = source.id;
 
         if (elTitle != null) {
-          entry.name = StringNormalizer.normalize(elTitle.text, true);
+          entry.name = StringTool.normalize(elTitle.text, true);
         }
 
         if (elOtherNames != null) {
@@ -167,12 +170,12 @@ class NovelPlanet extends LNSource {
           final textNode0 = elExtras[0].parent.nodes.last;
           final textNode1 = elExtras[1].parent.nodes.last;
           if (textNode0 != null) {
-            entry.releaseDate = StringNormalizer.normalize(textNode0.text, true)
+            entry.releaseDate = StringTool.normalize(textNode0.text, true)
                 .replaceAll('(', '')
                 .replaceAll(')', '');
           }
           if (textNode1 != null) {
-            entry.ranking = StringNormalizer.normalize(textNode1.text, true);
+            entry.ranking = StringTool.normalize(textNode1.text, true);
           }
         }
 
@@ -187,14 +190,14 @@ class NovelPlanet extends LNSource {
             chapter.sourceId = source.id;
             chapter.index = entry.chapters.length;
 
-            chapter.title = StringNormalizer.normalize(elChapter.text, true);
+            chapter.title = StringTool.normalize(elChapter.text, true);
 
             chapter.link = mkurl(elChapter.attributes['href']);
 
             final elNext = elChapter.nextElementSibling;
 
             if (elNext != null && elNext.className.contains('date')) {
-              chapter.date = StringNormalizer.normalize(elNext.text, true)
+              chapter.date = StringTool.normalize(elNext.text, true)
                   .replaceAll('(', '')
                   .replaceAll(')', '');
             }
@@ -211,22 +214,6 @@ class NovelPlanet extends LNSource {
       print(html);
     }
     return null;
-  }
-
-  @override
-  String makeReaderContent(String chapterHTML) {
-    final document = parse(chapterHTML);
-    print('parsed reader document...');
-    final content = document.querySelector('#divReadContent');
-    if (content != null) {
-      print('parsed reader document content.......');
-      print('normalizing document reader...');
-      String normalized = StringNormalizer.normalize(content.innerHtml);
-      print('normalized...');
-      return normalized;
-    } else {
-      return null;
-    }
   }
 
   @override

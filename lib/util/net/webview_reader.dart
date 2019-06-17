@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ln_reader/util/string_normalizer.dart';
+import 'package:ln_reader/util/string_tool.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:interactive_webview/interactive_webview.dart';
@@ -19,7 +19,8 @@ class WebviewReader {
         } else {
           showDialog(
             context: context,
-            builder: (ctx) => AlertDialog(
+            builder: (ctx) =>
+                AlertDialog(
                   title: Text('Error'),
                   content: Text('Unable to launch in external browser'),
                 ),
@@ -27,11 +28,11 @@ class WebviewReader {
         }
       });
 
-  static Future<String> read(
-    String url, {
+  static Future<String> read(String url, {
     Duration timeout = const Duration(milliseconds: 12500),
     bool needsCompleteLoad = false,
     Future Function(InteractiveWebView view) onLoad,
+    bool encodeURL = true,
   }) async {
     final start = DateTime.now();
 
@@ -39,7 +40,13 @@ class WebviewReader {
     int timeoutMillis = timeout.inMilliseconds;
     bool extendedTimeout = false;
 
-    final uri = Uri.parse(Uri.encodeFull(url.replaceAll(' ', '%20')));
+    String encodedURL = url.replaceAll(' ', '%20');
+
+    if (encodeURL) {
+      encodedURL = Uri.encodeFull(encodedURL);
+    }
+
+    final uri = Uri.parse(encodedURL);
 
     final view = InteractiveWebView();
 
@@ -73,7 +80,9 @@ class WebviewReader {
 
         if (data.containsKey('source')) {
           final source = data['source'].toString();
-          if (source.trim().isNotEmpty) {
+          if (source
+              .trim()
+              .isNotEmpty) {
             if (isCloudflare(source)) {
               // Since we have to load two pages, double the timeout.
               if (!extendedTimeout) {
@@ -113,7 +122,7 @@ class WebviewReader {
       if (state.type == WebViewState.didStart) {
         Loader.text.val = 'Started page load...';
         Future.doWhile(() async {
-          await Future.delayed(Duration(milliseconds: 100));
+          await Future.delayed(Duration(milliseconds: 250));
           view.evalJavascript('''
             var nativeCommunicator = typeof webkit !== 'undefined' ? webkit.messageHandlers.native : window.native;
             nativeCommunicator.postMessage(JSON.stringify({ "state": document.readyState }));
@@ -146,7 +155,7 @@ class WebviewReader {
       'dnt': '1',
       'user-agent': randomAgent(),
       'accept':
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
+      'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
       'referer': uri.origin,
       'accept-encoding': 'gzip, deflate',
       'accept-language': 'en-US,en;q=0.9',
@@ -164,10 +173,13 @@ class WebviewReader {
       sourceCompleter.future.then((src) => pageSource = src);
       final timeoutStart = DateTime.now();
       await Future.doWhile(() async {
-        await Future.delayed(Duration(milliseconds: 100));
+        await Future.delayed(Duration(milliseconds: 250));
 
         final difference =
-            DateTime.now().difference(timeoutStart).inMilliseconds;
+            DateTime
+                .now()
+                .difference(timeoutStart)
+                .inMilliseconds;
 
         if (difference >= timeoutMillis) {
           Loader.text.val = 'Timed out...';
@@ -182,12 +194,17 @@ class WebviewReader {
       msgReceiver.cancel();
       stateChanger.cancel();
       view.loadUrl('about:blank');
+      // Wait for about:blank
+      await Future.delayed(Duration(milliseconds: 500));
       throw err;
     }
 
     Loader.text.val = null;
 
-    final timeTaken = DateTime.now().difference(start).inMilliseconds;
+    final timeTaken = DateTime
+        .now()
+        .difference(start)
+        .inMilliseconds;
     print('source retrieved in: ${timeTaken}ms');
 
     Loader.extendedText.val = null;
@@ -196,7 +213,10 @@ class WebviewReader {
 
     view.loadUrl('about:blank');
 
-    return StringNormalizer.normalize(pageSource);
+    // Wait for about:blank
+    await Future.delayed(Duration(milliseconds: 500));
+
+    return StringTool.normalize(pageSource);
   }
 
   static bool isCloudflare(String source) {

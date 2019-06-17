@@ -55,9 +55,6 @@ class _EntryView extends State<EntryView> {
     globals.offline.bind(this);
 
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      // Download and cache the cover image
-      widget.preview.downloadCover();
-
       // Set entry if locally cached
       if (widget.preview.entry != null) {
         print('Using locally cached entry');
@@ -95,6 +92,9 @@ class _EntryView extends State<EntryView> {
           setState(() => entry = _entry);
         }
       }
+
+      // Download and cache the cover image
+      widget.preview.downloadCover(entry);
     });
   }
 
@@ -752,8 +752,12 @@ class _EntryView extends State<EntryView> {
                                                         fit: BoxFit.fill,
                                                         placeholder:
                                                             'assets/images/blank.png',
-                                                        image: widget
-                                                            .preview.coverURL,
+                                                        image: entry != null &&
+                                                                entry.hdCoverURL !=
+                                                                    null
+                                                            ? entry.hdCoverURL
+                                                            : widget.preview
+                                                                .coverURL,
                                                       )),
                                           ),
                                         ),
@@ -790,7 +794,11 @@ class _EntryView extends State<EntryView> {
                                           ],
                                         )
                                       : null,
-                                  Section.create('Chapters:'),
+                                  Section.create(
+                                    entry.chapters.isEmpty
+                                        ? 'Chapters: None'
+                                        : 'Chapters:',
+                                  ),
                                 ].where((w) => w != null).toList(),
                               ),
                             ]),

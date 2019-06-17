@@ -17,7 +17,7 @@ class ASourceTemplate extends LNSource {
         );
 
   @override
-  Future<String> fetchPreviews() {
+  Future<List<String>> fetchPreviews() {
     // TODO: implement fetchPreviews
     return null;
   }
@@ -35,7 +35,7 @@ class ASourceTemplate extends LNSource {
   }
 
   @override
-  Map<String, List<LNPreview>> parsePreviews(String html) {
+  Map<String, List<LNPreview>> parsePreviews(List<String> html) {
     // TODO: implement parsePreviews
     return null;
   }

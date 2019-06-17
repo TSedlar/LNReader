@@ -107,7 +107,7 @@ class LNPreview {
     }
   }
 
-  Future<File> downloadCover() async {
+  Future<File> downloadCover(LNEntry entry) async {
     // Download cover if it's not already downloaded
     if (!coverFile.existsSync()) {
       if (globals.offline.val) {
@@ -116,9 +116,11 @@ class LNPreview {
       } else {
         dir.createSync(recursive: true);
 
-        print('caching cover: $coverURL');
+        String url = entry != null && entry.hdCoverURL != null ? entry.hdCoverURL : coverURL;
 
-        final res = await http.get(coverURL, headers: {
+        print('caching cover: $url');
+
+        final res = await http.get(url, headers: {
           'User-Agent': WebviewReader.randomAgent(),
         });
 

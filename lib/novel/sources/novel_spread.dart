@@ -4,7 +4,6 @@ import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
-import 'package:ln_reader/util/string_normalizer.dart';
 
 class NovelSpread extends LNSource {
   NovelSpread()
@@ -24,8 +23,10 @@ class NovelSpread extends LNSource {
         );
 
   @override
-  Future<String> fetchPreviews() {
-    return readFromView(baseURL);
+  Future<List<String>> fetchPreviews() async {
+    return [
+      await readFromView(baseURL),
+    ];
   }
 
   @override
@@ -39,7 +40,8 @@ class NovelSpread extends LNSource {
   }
 
   @override
-  Map<String, List<LNPreview>> parsePreviews(String html) {
+  Map<String, List<LNPreview>> parsePreviews(List<String> htmlList) {
+    final html = htmlList.first;
     final document = parse(html);
 
     return {
@@ -173,21 +175,6 @@ class NovelSpread extends LNSource {
       });
     }
     return entry;
-  }
-
-  @override
-  String makeReaderContent(String chapterHTML) {
-    final document = parse(chapterHTML);
-    print('parsed reader document...');
-    final content = document.querySelector('article div[class*="content"]');
-    if (content != null) {
-      print('parsed reader document content.......');
-      print('normalizing document reader...');
-      String normalized = StringNormalizer.normalize(content.innerHtml);
-      print('normalized...');
-      return normalized;
-    }
-    return null;
   }
 
   @override

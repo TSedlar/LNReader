@@ -159,7 +159,9 @@ class _ReaderView extends State<ReaderView> {
   Widget _makeReader() {
     final children = HtmlRenderer.createChildren(
       widget.html,
+      context: context,
       theme: ThemeData(
+        accentColor: Theme.of(context).accentColor,
         textTheme: TextTheme(
           body1: TextStyle(
             fontFamily: globals.readerFontFamily.val,

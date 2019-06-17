@@ -1,4 +1,15 @@
-class StringNormalizer {
+class StringTool {
+
+  static bool endsWithR(String str, Pattern pattern) {
+    var idx = str.lastIndexOf(pattern);
+    if (idx >= 0) {
+      str = str.substring(idx);
+      str = str.replaceFirst(pattern, '');
+      return str.isEmpty;
+    }
+    return false;
+  }
+
   static String normalize(String str, [bool removeLineBreaks = false]) {
     // Early catch null input
     if (str == null) {

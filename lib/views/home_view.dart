@@ -8,7 +8,6 @@ import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/net/connection_status.dart';
-import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/util/ui/retry.dart';
 import 'package:ln_reader/views/widget/loader.dart';
 import 'package:ln_reader/views/sidebar_view.dart';
@@ -24,7 +23,7 @@ class HomeArgs {
 
   final bool poppable;
   final LNSource source;
-  final String html;
+  final List<String> html;
   final bool isSearch;
 }
 
@@ -37,7 +36,7 @@ class HomeView extends StatefulWidget {
   }) : super(key: key);
 
   final LNSource source;
-  final String html;
+  final List<String> html;
   final bool isSearch;
 
   @override
@@ -69,9 +68,10 @@ class _HomeView extends State<HomeView> {
       if (widget.html != null) {
         if (widget.isSearch) {
           // Retrieve search previews in the background
+          // Note: search will only have one HTML entry
           final _searchPreviews = await LNIsolate.parseSearchPreviews(
             widget.source,
-            widget.html,
+            widget.html.first,
           );
           // Update searchPreviews state
           setState(() {
@@ -112,7 +112,7 @@ class _HomeView extends State<HomeView> {
       if (html != null) {
         _renavigate(
           source: globals.source.val,
-          html: html,
+          html: [html],
           isSearch: true,
         );
       } else {
@@ -147,7 +147,7 @@ class _HomeView extends State<HomeView> {
 
   Future _renavigate({
     LNSource source,
-    String html,
+    List<String> html,
     bool isSearch,
     bool replace = false,
   }) {

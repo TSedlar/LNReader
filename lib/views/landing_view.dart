@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
-import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/ui/retry.dart';
 import 'package:ln_reader/views/preview_list_view.dart';
 import 'package:ln_reader/views/widget/loader.dart';
@@ -56,6 +55,12 @@ class _LandingView extends State<LandingView> {
   }
 
   void _navigateToHome([LNSource source]) async {
+    if (source == null) {
+      source = globals.source.val;
+    } else {
+      globals.source.val = source;
+    }
+
     setState(() {
       checking = true;
     });
@@ -63,7 +68,7 @@ class _LandingView extends State<LandingView> {
     final html = globals.offline.val
         ? 'offline'
         : await Retry.exec(context, () {
-            return globals.source.val.fetchPreviews();
+            return source.fetchPreviews();
           }, escapable: false);
 
     if (html != null) {
@@ -71,7 +76,7 @@ class _LandingView extends State<LandingView> {
         '/home',
         arguments: HomeArgs(
           poppable: false,
-          source: source != null ? source : globals.source.val,
+          source: source,
           html: html == 'offline' ? null : html,
         ),
       );
@@ -119,70 +124,6 @@ class _LandingView extends State<LandingView> {
     }
   }
 
-  _doCheck(LNSource source) async {
-    globals.source.val = source;
-
-    setState(() {
-      checking = true;
-    });
-
-    Loader.text.val = 'Checking ${source.name}';
-
-    bool successful = false;
-
-    try {
-      final html = await source.fetchPreviews();
-      if (html != null && !WebviewReader.isCloudflare(html)) {
-        successful = true;
-      }
-    } catch (err) {
-      print('failed check');
-      print(err);
-    }
-
-    setState(() {
-      checking = false;
-    });
-
-    if (successful) {
-      _navigateToHome(source);
-    } else {
-      showDialog(
-        barrierDismissible: false,
-        context: context,
-        builder: (ctx) => AlertDialog(
-              backgroundColor: Theme.of(context).primaryColor,
-              title: Text(
-                'Failed...',
-                style: Theme.of(context).textTheme.subtitle,
-              ),
-              content: Text(
-                'Connection faulty...',
-                style: Theme.of(context).textTheme.subtitle,
-              ),
-              actions: [
-                FlatButton(
-                  child: Text(
-                    'Cancel',
-                    style: Theme.of(context).textTheme.caption,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                FlatButton(
-                    child: Text(
-                      'Retry',
-                      style: Theme.of(context).textTheme.caption,
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _doCheck(source);
-                    }),
-              ],
-            ),
-      );
-    }
-  }
-
   Widget _createFirstRunPage() {
     final children = <Widget>[
       Padding(
@@ -208,7 +149,7 @@ class _LandingView extends State<LandingView> {
       children.add(Padding(
         padding: EdgeInsets.only(bottom: 3.0),
         child: GestureDetector(
-          onTap: () => _doCheck(source),
+          onTap: () => _navigateToHome(source),
           child: Card(
             color: Theme.of(context).primaryColor,
             child: ListTile(
@@ -233,7 +174,7 @@ class _LandingView extends State<LandingView> {
                   'Choose',
                   style: Theme.of(context).textTheme.caption,
                 ),
-                onPressed: () => _doCheck(source),
+                onPressed: () => _navigateToHome(source),
               ),
             ),
           ),

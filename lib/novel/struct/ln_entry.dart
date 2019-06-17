@@ -16,6 +16,7 @@ class LNEntry {
   String status = 'N/A';
   String translator = 'N/A';
   String description = '';
+  String hdCoverURL;
   List<LNChapter> chapters = []; // must be descending order
 
   LNSource get source => globals.sources[sourceId];
@@ -44,6 +45,7 @@ class LNEntry {
       'status': status,
       'translator': translator,
       'description': description,
+      'hd_cover_url': hdCoverURL,
       'chapters': chapters.map((ch) => ch.toJson()).toList(),
     };
   }
@@ -101,6 +103,10 @@ class LNEntry {
 
     if (json['description'] != null) {
       entry.description = json['description'];
+    }
+
+    if (json['hd_cover_url'] != null) {
+      entry.hdCoverURL = json['hd_cover_url'];
     }
 
     if (json['chapters'] != null) {

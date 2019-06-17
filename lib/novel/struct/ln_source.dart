@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:html/parser.dart';
 import 'package:interactive_webview/interactive_webview.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/novel/struct/ln_download.dart';
@@ -10,8 +11,10 @@ import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/novel/struct/ln_chapter.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
+import 'package:ln_reader/util/net/article_parser.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
 import 'package:ln_reader/util/observable.dart';
+import 'package:ln_reader/util/string_tool.dart';
 import 'package:ln_reader/util/ui/color_tool.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
 import 'package:ln_reader/util/ui/retry.dart';
@@ -69,6 +72,8 @@ abstract class LNSource {
   String mkurl(String slug) {
     if (slug.startsWith('http')) {
       return slug;
+    } else if (slug.startsWith('//')) {
+      return 'http:$slug';
     }
     String base = this.baseURL;
     if (base.endsWith('/')) {
@@ -88,11 +93,15 @@ abstract class LNSource {
     String url, {
     bool needsCompleteLoad = false,
     Future Function(InteractiveWebView view) onLoad,
+    Duration timeout = const Duration(milliseconds: 12500),
+    bool encodeURL = true,
   }) =>
       WebviewReader.read(
         url,
         needsCompleteLoad: needsCompleteLoad,
         onLoad: onLoad,
+        timeout: timeout,
+        encodeURL: encodeURL,
       );
 
   List<Widget> makePreviewWidgets(
@@ -366,9 +375,9 @@ abstract class LNSource {
     }
   }
 
-  Future<String> fetchPreviews();
+  Future<List<String>> fetchPreviews();
 
-  Map<String, List<LNPreview>> parsePreviews(String html);
+  Map<String, List<LNPreview>> parsePreviews(List<String> htmlList);
 
   Future<String> search(String query, List<String> genres);
 
@@ -378,10 +387,23 @@ abstract class LNSource {
 
   LNEntry parseEntry(LNSource source, String html);
 
-  String makeReaderContent(String chapterHTML);
-
   Future<LNDownload> handleNonTextDownload(
     LNPreview preview,
     LNChapter chapter,
   );
+
+  String makeReaderContent(String chapterHTML) {
+    final document = parse(chapterHTML);
+
+    print('finding article...');
+    final article = ArticleParser.getArticleElement(document);
+    if (article != null) {
+      print('found article');
+      print('normalizing document reader...');
+      String normalized = StringTool.normalize(article.innerHtml);
+      print('normalized...');
+      return normalized;
+    }
+    return null;
+  }
 }
