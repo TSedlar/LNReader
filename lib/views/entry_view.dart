@@ -737,7 +737,10 @@ class _EntryView extends State<EntryView> {
                                                     ),
                                                   )
                                                 : (html == null ||
-                                                        globals.offline.val
+                                                        globals.offline.val ||
+                                                        widget.preview
+                                                                .coverURL ==
+                                                            null
                                                     ? Image(
                                                         fit: BoxFit.fill,
                                                         image: AssetImage(

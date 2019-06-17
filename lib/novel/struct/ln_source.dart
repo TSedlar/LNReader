@@ -187,7 +187,7 @@ abstract class LNSource {
                             fit: BoxFit.fill,
                             image: MemoryImage(preview.coverImage),
                           )
-                        : (offline
+                        : (offline || preview.coverURL == null
                             ? Image(
                                 width: itemSize - 10,
                                 height: itemSize - 10,
