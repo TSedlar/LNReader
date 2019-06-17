@@ -3,9 +3,13 @@ library globals;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:ln_reader/novel/sources/baka_novel.dart';
 import 'package:ln_reader/novel/sources/box_novel.dart';
+import 'package:ln_reader/novel/sources/hako.dart';
+import 'package:ln_reader/novel/sources/neu_manga.dart';
 import 'package:ln_reader/novel/sources/novel_spread.dart';
 import 'package:ln_reader/novel/sources/novel_updates.dart';
+import 'package:ln_reader/novel/sources/sky_novels.dart';
 import 'package:ln_reader/novel/sources/wuxia_world.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/util/ui/hex_color.dart';
@@ -25,6 +29,14 @@ final Map<String, LNSource> sources = Map.fromIterable(
     WuxiaWorld(),
     NovelSpread(),
     BoxNovel(),
+    // Spanish sources
+    SkyNovels(),
+    // French sources
+    BakaNovel(),
+    // Vietnamese sources
+    Hako(),
+    // Indian sources
+    NeuManga(),
   ],
   key: (item) => (item as LNSource).id,
   value: (item) => (item as LNSource),

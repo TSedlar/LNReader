@@ -10,6 +10,11 @@ class StringTool {
     return false;
   }
 
+  static String properFormat(String str) {
+    str = str.toLowerCase();
+    return str.substring(0, 1).toUpperCase() + str.substring(1);
+  }
+
   static String normalize(String str, [bool removeLineBreaks = false]) {
     // Early catch null input
     if (str == null) {
