@@ -12,7 +12,10 @@ class AboutView extends StatelessWidget {
     'http ^0.12.0+2': 'https://pub.dev/packages/http',
     'html ^0.14.0': 'https://pub.dev/packages/html',
     'connectivity ^0.4.3+2': 'https://pub.dev/packages/connectivity',
-    'interactive_webview ^0.1.1+8': 'https://pub.dev/packages/interactive_webview',
+    'interactive_webview ^0.1.1+8':
+        'https://pub.dev/packages/interactive_webview',
+    'shared_preferences ^0.5.3+1':
+        'https://pub.dev/packages/shared_preferences',
     'battery_indicator ^0.0.2': 'https://pub.dev/packages/battery_indicator',
     'sticky_headers ^0.1.8': 'https://pub.dev/packages/sticky_headers',
     'flutter_speed_dial ^1.1.2': 'https://pub.dev/packages/flutter_speed_dial',
@@ -113,19 +116,25 @@ class AboutView extends StatelessWidget {
               context: context,
               title: '3rd Party Aggregators',
               children: globals.sources.keys
-                  .map((key) => ListTile(
-                        title: Text(globals.sources[key].name, style: fg),
-                        trailing: IconButton(
-                          padding: EdgeInsets.only(
-                            left: 24.0,
-                            top: 8.0,
-                            bottom: 8.0,
+                  .map((key) => Padding(
+                        padding: EdgeInsets.only(bottom: 16.0),
+                        child: ListTile(
+                          title: Text(globals.sources[key].name, style: fg),
+                          leading: Image(
+                            image: AssetImage(globals.sources[key].logoAsset),
                           ),
-                          icon: Icon(Icons.launch, color: fg.color),
-                          onPressed: () => WebviewReader.launchExternal(
-                                context,
-                                globals.sources[key].baseURL,
-                              ),
+                          trailing: IconButton(
+                            padding: EdgeInsets.only(
+                              left: 24.0,
+                              top: 8.0,
+                              bottom: 8.0,
+                            ),
+                            icon: Icon(Icons.launch, color: fg.color),
+                            onPressed: () => WebviewReader.launchExternal(
+                                  context,
+                                  globals.sources[key].baseURL,
+                                ),
+                          ),
                         ),
                       ))
                   .toList()),

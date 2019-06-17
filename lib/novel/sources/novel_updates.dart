@@ -100,7 +100,7 @@ class NovelUpdates extends LNSource {
       preview.link,
       onLoad: (view) async {
         // We have to manually activate the chapter listing button..
-        await waitForChapterActivation(view, activateWaitMillis);
+        await _waitForChapterActivation(view, activateWaitMillis);
         return true;
       },
       timeout: Duration(
@@ -266,7 +266,7 @@ class NovelUpdates extends LNSource {
     return null;
   }
 
-  waitForChapterActivation(InteractiveWebView view, int timeoutMillis) async {
+  _waitForChapterActivation(InteractiveWebView view, int timeoutMillis) async {
     final completer = Completer();
 
     final clickListener = view.didReceiveMessage.listen((msg) {
@@ -283,19 +283,19 @@ class NovelUpdates extends LNSource {
       await Future.delayed(Duration(milliseconds: 250));
 
       view.evalJavascript('''
-          if (typeof window.clicked === 'undefined') {
-            window.clicked = false;
+        if (typeof window.clicked === 'undefined') {
+          window.clicked = false;
+        }
+        if (!window.clicked) {
+          var chViewer = document.querySelector('span[class*="my_popupreading_open"]');
+          if (chViewer != null) {
+            console.log('Clicked chapter popup');
+            window.clicked = true;
+            chViewer.click();
+            var nativeCommunicator = typeof webkit !== 'undefined' ? webkit.messageHandlers.native : window.native;
+            nativeCommunicator.postMessage(JSON.stringify({ "clicked": true }));
           }
-          if (!window.clicked) {
-            var chViewer = document.querySelector('span[class*="my_popupreading_open"]');
-            if (chViewer != null) {
-              console.log('Clicked chapter popup');
-              window.clicked = true;
-              chViewer.click();
-              var nativeCommunicator = typeof webkit !== 'undefined' ? webkit.messageHandlers.native : window.native;
-              nativeCommunicator.postMessage(JSON.stringify({ "clicked": true }));
-            }
-          }
+        }
       ''');
 
       final difference = DateTime.now().difference(timeoutStart).inMilliseconds;
