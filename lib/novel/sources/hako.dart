@@ -4,7 +4,10 @@ import 'package:ln_reader/novel/struct/ln_download.dart';
 import 'package:ln_reader/novel/struct/ln_entry.dart';
 import 'package:ln_reader/novel/struct/ln_preview.dart';
 import 'package:ln_reader/novel/struct/ln_source.dart';
+import 'package:ln_reader/util/net/article_parser.dart';
+import 'package:ln_reader/util/string_tool.dart';
 
+//
 class Hako extends LNSource {
   static final Map<String, String> _genreMapping = {
     'Action': '1',
@@ -246,33 +249,40 @@ class Hako extends LNSource {
       );
 
       chapters.forEach((chElement) {
-        final chapter = LNChapter();
+        final imgIcon = chElement.parent.querySelector(
+          'i[class*="fa-picture-o"]',
+        );
 
-        chapter.sourceId = source.id;
-        chapter.index = (allChapters.length - idx);
-        chapter.link = mkurl(chElement.attributes['href']);
+        // Only add if not an illustration page
+        if (imgIcon == null) {
+          final chapter = LNChapter();
 
-        String title = chElement.text.trim();
+          chapter.sourceId = source.id;
+          chapter.index = (allChapters.length - idx);
+          chapter.link = mkurl(chElement.attributes['href']);
 
-        // Ensure we're not loading in the illustation chapter
-        // Since we cannot display it.
-        if (title.toLowerCase() != 'minh họa') {
-          // Don't prepend volume if it's the only volume
-          if (volumes.length > 1) {
-            if (volumeName != null) {
-              final volTxt = volumeName.text.trim();
-              if (volTxt.contains(' - ')) {
-                title = volTxt.split(' - ')[0] + ': ' + title;
-              } else {
-                title = volTxt + ': ' + title;
+          String title = chElement.text.trim();
+
+          // Ensure we're not loading in the illustation chapter
+          // Since we cannot display it.
+          if (title.toLowerCase() != 'minh họa') {
+            // Don't prepend volume if it's the only volume
+            if (volumes.length > 1) {
+              if (volumeName != null) {
+                final volTxt = volumeName.text.trim();
+                if (volTxt.contains(' - ')) {
+                  title = volTxt.split(' - ')[0] + ': ' + title;
+                } else {
+                  title = volTxt + ': ' + title;
+                }
               }
             }
+
+            chapter.title = title;
+
+            // Hako is in standard order, we need descending
+            entry.chapters.insert(0, chapter);
           }
-
-          chapter.title = title;
-
-          // Hako is in standard order, we need descending
-          entry.chapters.insert(0, chapter);
         }
 
         idx++;
