@@ -21,18 +21,26 @@ Works on both iOS and Android thanks to [Flutter](https://flutter.dev/)
   <img src="assets/images/release/android/ss7.png" width="300" />
 </p>
 
-## Roadmap
+## Sources
 
-Currently the application core is pretty much entirely finished and fleshed out.
+### English
+- [Novel Updates](https://www.novelupdates.com)
+- [Novel Planet](https://novelplanet.com/)
+- [Wuxia World](https://wuxiaworld.online/)
+- [Novel Spread](https://www.novelspread.com/)
+- [Box Novel](https://boxnovel.com/)
 
-I do plan to eventually add a few more things that can already be done in some way:
-- Notifications upon a 'favorite' being updated
-    - NovelUpdates is a thing (subscribe to RSS)
-- Saving for offline reading
-    - One can open a chapter in an external browser already and use another app for downloading the page
+### Spanish
+- [Sky Novels](https://www.skynovels.net/)
 
-Add more sources
-- Current only NovelPlanet is supported
+### French
+- [Baka Novel](https://www.bakanovel.com/)
+
+### Vietnamese
+- [Hako](https://ln.hako.re/)
+
+### Indian
+- [Neu Manga](https://neumanga.tv/)
 
 ## Open Source
 
