@@ -1,12 +1,10 @@
 # LNReader
 
-[![](https://img.shields.io/badge/-F--Droid-a4c639.svg?logo=Android&labelColor=5a5a5a&logoColor=white)](#)
-[![](https://img.shields.io/badge/-Play%20Store-ef6c00.svg?logo=Google%20Play&labelColor=5a5a5a&logoColor=white)](https://play.google.com/store/apps/details?id=me.sedlar.ln_reader)
-[![](https://img.shields.io/badge/-App%20Store-blue.svg?logo=Apple&labelColor=5a5a5a&logoColor=white)](#)
-
-![](https://img.shields.io/github/license/mashape/apistatus.svg)
-[![](https://img.shields.io/badge/donate-patreon-orange.svg)](https://www.patreon.com/bePatron?c=954360)
-[![](https://img.shields.io/badge/donate-paypal-blue.svg)](https://paypal.me/TSedlar)
+[![](https://img.shields.io/badge/-F--Droid-a4c639.svg?logo=Android&labelColor=7A7A7A&logoColor=white)](#)
+[![](https://img.shields.io/badge/-Play%20Store-ef6c00.svg?logo=Google%20Play&labelColor=7A7A7A&logoColor=white)](https://play.google.com/store/apps/details?id=me.sedlar.ln_reader)
+[![](https://img.shields.io/badge/-App%20Store-blue.svg?logo=Apple&labelColor=7A7A7A&logoColor=white)](#)
+[![](https://img.shields.io/badge/-Donate-orange.svg?logo=Patreon&labelColor=7A7A7A)](https://www.patreon.com/bePatron?c=954360)
+[![](https://img.shields.io/badge/-Donate-blue.svg?logo=Paypal&labelColor=7A7A7A)](https://paypal.me/TSedlar)
 
 <img src="assets/images/release/android/feature_graphic.png" width="300" />
 
