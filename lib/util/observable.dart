@@ -4,12 +4,18 @@ import 'package:collection/collection.dart';
 import 'package:flutter/widgets.dart';
 
 class ObservableValue<T> {
+  static final Map<int, List<MapEntry<ObservableValue, StreamSubscription>>>
+      _subMap = {};
+
   T _value;
   StreamController<T> _streamController = StreamController.broadcast();
 
   T get value => _value;
+
   T get val => _value;
+
   bool get seen => val != null;
+
   Stream<T> get stream => _streamController.stream;
 
   set value(T t) {
@@ -68,11 +74,48 @@ class ObservableValue<T> {
   }
 
   void bind(State state) {
-    listen((_) {
+    // Ignore the warning below because we dispose in disposeAt
+    // ignore: cancel_subscriptions
+    final sub = listen((_) {
       // Refresh the state when update is observed
       if (state.mounted) {
         state.setState(() {}); // ignore: invalid_use_of_protected_member
       }
+    });
+
+    final hash = state.hashCode;
+
+    if (!_subMap.containsKey(hash)) {
+      _subMap[hash] = [];
+    }
+
+    _subMap[hash].add(MapEntry(this, sub));
+  }
+
+  void disposeAt(State state) {
+    final hash = state.hashCode;
+    if (_subMap.containsKey(hash)) {
+      _subMap[hash].forEach((entry) {
+        if (entry.key == this) {
+          try {
+            entry.value.cancel();
+          } catch (err) {
+            // ignore, it's already been cancelled.
+          }
+        }
+      });
+    }
+  }
+
+  static void disposeAll() {
+    _subMap.values.forEach((entries) {
+      entries.forEach((entry) {
+        try {
+          entry.value.cancel();
+        } catch (err) {
+          // ignore, it's already been cancelled.
+        }
+      });
     });
   }
 }
@@ -135,7 +178,7 @@ class _ObservableList<T> extends DelegatingList<T> {
   ObservableValue _instance;
 
   _ObservableList(List<T> base) : super(base);
-  
+
   void operator []=(int index, T value) {
     super[index] = value;
     _instance.value = this;

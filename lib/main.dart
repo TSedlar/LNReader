@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:ln_reader/util/net/connection_status.dart';
 import 'package:ln_reader/util/net/pdf2text.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
+import 'package:ln_reader/util/observable.dart';
 import 'package:ln_reader/views/widget/swipeable_route.dart';
 import 'package:ln_reader/scopes/global_scope.dart' as globals;
 import 'package:ln_reader/util/ui/hex_color.dart';
@@ -108,6 +109,9 @@ class _MainApplication extends State<MainApplication>
   void dispose() {
     // Remove lifecycle watcher
     WidgetsBinding.instance.removeObserver(this);
+
+    // Dispose all observables
+    ObservableValue.disposeAll();
 
     // Dispose
     super.dispose();

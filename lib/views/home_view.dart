@@ -93,6 +93,15 @@ class _HomeView extends State<HomeView> {
     });
   }
 
+  @override
+  void dispose() {
+    globals.theme.disposeAt(this);
+    globals.source.disposeAt(this);
+    globals.source.val.selectedGenres.disposeAt(this);
+    globals.offline.disposeAt(this);
+    super.dispose();
+  }
+
   _refresh({String query, bool forceSearch = false}) async {
     if (globals.offline.val) {
       return;

@@ -70,7 +70,9 @@ class _EntryView extends State<EntryView> {
           String fetchedHTML =
               await widget.preview.source.fetchEntry(widget.preview);
           if (fetchedHTML != null) {
-            setState(() => html = fetchedHTML);
+            if (mounted) {
+              setState(() => html = fetchedHTML);
+            }
           }
           print('Updated entry');
         }
@@ -89,13 +91,27 @@ class _EntryView extends State<EntryView> {
           widget.preview.writeEntryData(_entry);
 
           // Update entry state
-          setState(() => entry = _entry);
+          if (mounted) {
+            setState(() => entry = _entry);
+          }
         }
       }
 
       // Download and cache the cover image
       widget.preview.downloadCover(entry);
     });
+  }
+
+  @override
+  void dispose() {
+    // Dispose of observables
+    widget.preview.lastRead.disposeAt(this);
+    widget.preview.ascending.disposeAt(this);
+    widget.preview.source.favorites.disposeAt(this);
+    globals.readerMode.disposeAt(this);
+    globals.offline.disposeAt(this);
+
+    super.dispose();
   }
 
   Widget _txt(String str, [double bottomPadding = 6.0]) {

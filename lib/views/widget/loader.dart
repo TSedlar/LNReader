@@ -38,6 +38,13 @@ class _LoaderScaffold extends State<LoaderScaffold> {
   }
 
   @override
+  void dispose() {
+    Loader.text.disposeAt(this);
+    Loader.extendedText.disposeAt(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(

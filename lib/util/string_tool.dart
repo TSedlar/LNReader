@@ -42,8 +42,8 @@ class StringTool {
       String upUnicode = '\\u${hexcode.toUpperCase()}';
       str = str.replaceAll(lowUnicode, replacement).replaceAll(upUnicode, replacement);
     }
-    // Remove control characters
-    str = String.fromCharCodes(str.runes.toList().where((rune) => rune >= 32));
+    // Replace control characters with a space
+    str = String.fromCharCodes(str.runes.map((r) => r < 32 ? 32 : r).toList());
     // Return the string as trimmed
     return str.trim();
   }

@@ -23,6 +23,12 @@ class _SidebarView extends State<SidebarView> {
   }
 
   @override
+  void dispose() {
+    globals.offline.disposeAt(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final fgAccent = Theme.of(context)
         .textTheme

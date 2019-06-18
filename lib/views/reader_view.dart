@@ -113,12 +113,19 @@ class _ReaderView extends State<ReaderView> {
     SystemChrome.setEnabledSystemUIOverlays(
       [SystemUiOverlay.top, SystemUiOverlay.bottom],
     );
+
     timeTimer.cancel();
     remainingTimer.cancel();
+
     globals.writeToFile(); // sync globals upon closing reader
+
     if (globals.deleteMode.val && widget.chapter.nearCompletion()) {
       widget.chapter.deleteFile(widget.preview);
     }
+
+    globals.readerFontFamily.disposeAt(this);
+    globals.readerFontSize.disposeAt(this);
+
     super.dispose();
   }
 

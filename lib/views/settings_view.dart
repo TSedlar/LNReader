@@ -24,9 +24,22 @@ class _SettingsView extends State<SettingsView> {
   void initState() {
     super.initState();
     globals.theme.bind(this);
+    globals.libHome.bind(this);
+    globals.hideRead.bind(this);
     globals.deleteMode.bind(this);
     globals.readerFontFamily.bind(this);
     globals.readerFontSize.bind(this);
+  }
+
+  @override
+  void dispose() {
+    globals.theme.disposeAt(this);
+    globals.libHome.disposeAt(this);
+    globals.hideRead.disposeAt(this);
+    globals.deleteMode.disposeAt(this);
+    globals.readerFontFamily.disposeAt(this);
+    globals.readerFontSize.disposeAt(this);
+    super.dispose();
   }
 
   Widget _makeFontCard(String font) => GestureDetector(

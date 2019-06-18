@@ -54,6 +54,12 @@ class _LandingView extends State<LandingView> {
     });
   }
 
+  @override
+  void dispose() {
+    globals.offline.disposeAt(this);
+    super.dispose();
+  }
+
   void _navigateToHome([LNSource source]) async {
     if (source == null) {
       source = globals.source.val;

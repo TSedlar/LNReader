@@ -30,6 +30,13 @@ class _PreviewListView extends State<PreviewListView> {
   }
 
   @override
+  void dispose() {
+    globals.offline.disposeAt(this);
+    globals.libHome.disposeAt(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (loading) {
       return Loader.create(context);
