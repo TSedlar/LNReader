@@ -488,8 +488,8 @@ class _EntryView extends State<EntryView> {
                                 child: Text('Share link'),
                               ),
                               PopupMenuItem(
-                                value: 'email',
-                                child: Text('E-Mail PDF'),
+                                value: 'export',
+                                child: Text('Export chapter'),
                               ),
                             ].where((child) => child != null).toList(),
                         onSelected: (action) async {
@@ -509,7 +509,7 @@ class _EntryView extends State<EntryView> {
                           } else if (action == 'share_link') {
                             print('Sharing link...');
                             Share.text('Share Chapter Link', chapter.link, 'text/plain');
-                          } else if (action == 'email') {
+                          } else if (action == 'export') {
                             await _downloadChapters([chapter.index]);
                             final content = await widget.preview.getChapterContent(chapter);
                             final name = widget.preview.name + ' - ' + chapter.title + '.txt';
