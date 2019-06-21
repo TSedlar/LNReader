@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/rendering.dart';
 import 'package:html/parser.dart';
 import 'package:html/dom.dart' hide Text;
+import 'package:ln_reader/util/net/article_parser.dart';
 
 import '../string_tool.dart';
 
@@ -89,75 +90,10 @@ class HtmlRenderer {
   }) {
     // Create array variables
     final children = <Widget>[];
-    final segments = <String>[];
     final pages = <String>[];
-
-    // The current segment that will be added to the array
-    String currentSegment = '';
-
-    // Index tracking for any changes needed to be done
-    int idx = 0;
-    int lastAddedIdx = 0;
-
-    // Combine all lines possible for less elements
-    nodes.forEach((nodeText) {
-      String txt = nodeText.toString();
-      // So that we don't start with new lines
-      if (idx == 0) {
-        txt = txt.trimLeft();
-      }
-      // Add if not empty
-      if (txt.isNotEmpty) {
-        if (_isNumeric(txt)) {
-          // Handle page numbers
-          segments.add(txt);
-          pages.add(txt);
-        } else {
-          // Check if current segment is valid and does not end with a trimmable char
-          if (currentSegment != null &&
-              currentSegment.isNotEmpty &&
-              currentSegment.trimRight() == currentSegment) {
-            currentSegment += ' ';
-          }
-
-          if (txt.contains(_imgPrefix)) {
-            segments.add(txt);
-          } else {
-            currentSegment += txt;
-            // Only count as a full segment if not adding a single character
-            if (txt.trim().length > 1) {
-              String checkSegment = currentSegment.trimRight();
-              if (checkSegment.endsWith('?') || // Sentences
-                  checkSegment.endsWith('.') ||
-                  checkSegment.endsWith('!') ||
-                  checkSegment.endsWith(':') || // Lists
-                  checkSegment.endsWith('=') ||
-                  checkSegment.endsWith('"') || // Quotes
-                  checkSegment.endsWith("'") ||
-                  checkSegment.endsWith('”') || // Fancy quotes
-                  checkSegment.endsWith('‘') ||
-                  checkSegment.endsWith(']') || // Dialog
-                  // Check for ending with ) and not an emote (i.e (ง ´͈౪`͈)ว)
-                  (checkSegment.endsWith(')') &&
-                      StringTool.endsWithR(
-                        checkSegment,
-                        RegExp('[A-Za-z0-9]\\)'),
-                      ))) {
-                segments.add('\n' + currentSegment);
-                currentSegment = '';
-                lastAddedIdx = idx;
-              }
-            }
-          }
-        }
-      }
-      idx++;
-    });
-
-    // Ensure last remaining text is added
-    if (lastAddedIdx != idx && currentSegment.trim().isNotEmpty) {
-      segments.add('\n' + currentSegment);
-    }
+    
+    // Fetch segments
+    final segments = parseSegments(nodes, pages: pages);
 
     // Create elements from segments
     children.addAll(
@@ -211,6 +147,105 @@ class HtmlRenderer {
       ),
     ];
   };
+
+
+  static List<String> parseSegments(List<dynamic> nodes, {List<String> pages}) {
+    final segments = <String>[];
+
+    // The current segment that will be added to the array
+    String currentSegment = '';
+
+    // Index tracking for any changes needed to be done
+    int idx = 0;
+    int lastAddedIdx = 0;
+
+    // Combine all lines possible for less elements
+    nodes.forEach((nodeText) {
+      String txt = nodeText.toString();
+      // So that we don't start with new lines
+      if (idx == 0) {
+        txt = txt.trimLeft();
+      }
+      // Add if not empty
+      if (txt.isNotEmpty) {
+        if (_isNumeric(txt)) {
+          // Handle page numbers
+          segments.add(txt);
+          if (pages != null) {
+            pages.add(txt);
+          }
+        } else {
+          // Check if current segment is valid and does not end with a trimmable char
+          if (currentSegment != null &&
+              currentSegment.isNotEmpty &&
+              currentSegment.trimRight() == currentSegment) {
+            currentSegment += ' ';
+          }
+
+          if (txt.contains(_imgPrefix)) {
+            segments.add(txt);
+          } else {
+            currentSegment += txt;
+            // Only count as a full segment if not adding a single character
+            if (txt.trim().length > 1) {
+              String checkSegment = currentSegment.trimRight();
+              if (checkSegment.endsWith('?') || // Sentences
+                  checkSegment.endsWith('.') ||
+                  checkSegment.endsWith('!') ||
+                  checkSegment.endsWith(':') || // Lists
+                  checkSegment.endsWith('=') ||
+                  checkSegment.endsWith('"') || // Quotes
+                  checkSegment.endsWith("'") ||
+                  checkSegment.endsWith('”') || // Fancy quotes
+                  checkSegment.endsWith('‘') ||
+                  checkSegment.endsWith(']') || // Dialog
+                  // Check for ending with ) and not an emote (i.e (ง ´͈౪`͈)ว)
+                  (checkSegment.endsWith(')') &&
+                      StringTool.endsWithR(
+                        checkSegment,
+                        RegExp('[A-Za-z0-9]\\)'),
+                      ))) {
+                segments.add('\n' + currentSegment);
+                currentSegment = '';
+                lastAddedIdx = idx;
+              }
+            }
+          }
+        }
+      }
+      idx++;
+    });
+
+    // Ensure last remaining text is added
+    if (lastAddedIdx != idx && currentSegment.trim().isNotEmpty) {
+      segments.add('\n' + currentSegment);
+    }
+
+    return segments;
+  }
+
+  
+  static List<String> parseHtmlSegments(String html) {
+    final mappings = <dynamic>[];
+    Document document;
+
+    try {
+      document = parse(html);
+    } catch (_) {
+      print('Failed to parse HTML');
+      return [];
+    }
+
+    final article = ArticleParser.getArticleElement(document);
+
+    article.nodes.forEach((node) {
+      _visitRecursive(node, (n) {
+        mappings.add(defaultNodeMapper(n));
+      });
+    });
+    
+    return parseSegments(mappings.where((child) => child != null).toList());
+  }
 
   static bool _isNumeric(String str) {
     if (str == null) {

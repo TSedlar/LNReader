@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:interactive_webview/interactive_webview.dart';
-import 'package:share/share.dart';
+import 'package:ln_reader/util/ui/html_renderer.dart';
+import 'package:esys_flutter_share/esys_flutter_share.dart';
 import 'package:ln_reader/novel/ln_isolate.dart';
 import 'package:ln_reader/util/net/connection_status.dart';
 import 'package:ln_reader/util/net/webview_reader.dart';
@@ -343,7 +345,7 @@ class _EntryView extends State<EntryView> {
                 style: Theme.of(context).textTheme.subtitle,
               ),
               content: Text(
-                'The ${failed.length} chapters failed to download',
+                'The ${failed.length} chapter(s) failed to download',
                 style: Theme.of(context).textTheme.caption,
               ),
               actions: [
@@ -485,6 +487,10 @@ class _EntryView extends State<EntryView> {
                                 value: 'share_link',
                                 child: Text('Share link'),
                               ),
+                              PopupMenuItem(
+                                value: 'email',
+                                child: Text('E-Mail PDF'),
+                              ),
                             ].where((child) => child != null).toList(),
                         onSelected: (action) async {
                           if (action == 'download') {
@@ -502,7 +508,14 @@ class _EntryView extends State<EntryView> {
                             WebviewReader.launchExternal(context, chapter.link);
                           } else if (action == 'share_link') {
                             print('Sharing link...');
-                            Share.share(chapter.link);
+                            Share.text('Share Chapter Link', chapter.link, 'text/plain');
+                          } else if (action == 'email') {
+                            await _downloadChapters([chapter.index]);
+                            final content = await widget.preview.getChapterContent(chapter);
+                            final name = widget.preview.name + ' - ' + chapter.title + '.txt';
+                            final txtData = HtmlRenderer.parseHtmlSegments(content).join('\n');
+                            final bytes = utf8.encode(txtData);
+                            await Share.file('Export Chapter', name, bytes, 'text/plain');
                           }
                         },
                       ),

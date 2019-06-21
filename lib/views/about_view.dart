@@ -6,7 +6,7 @@ import 'package:ln_reader/scopes/global_scope.dart' as globals;
 class AboutView extends StatelessWidget {
   final Map<String, String> dependencies = {
     'path_provider ^1.1.0': 'https://pub.dev/packages/path_provider',
-    'share ^0.6.1+1': 'https://pub.dev/packages/share',
+    'esys_flutter_share ^1.0.2': 'https://pub.dev/packages/esys_flutter_share',
     'url_launcher ^5.0.2': 'https://pub.dev/packages/url_launcher',
     'intl ^0.15.8': 'https://pub.dev/packages/intl',
     'http ^0.12.0+2': 'https://pub.dev/packages/http',

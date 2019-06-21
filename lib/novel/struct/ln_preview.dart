@@ -214,4 +214,36 @@ class LNPreview {
       return null;
     }
   }
+
+  String getChapterPath(LNChapter chapter) {
+    final chapterFileHTML = File(chapterDir.path + '/${chapter.index}.html');
+    final chapterFilePDF = File(chapterDir.path + '/${chapter.index}.pdf');
+    if (chapterFileHTML.existsSync()) {
+      return chapterFileHTML.path;
+    } else if (chapterFilePDF.existsSync()) {
+      return chapterFilePDF.path;
+    } else {
+      return null;
+    }
+  }
+
+  Uri getHtmlAttachment(LNChapter chapter) {
+    final chapterFileHTML = File(chapterDir.path + '/${chapter.index}.html');
+    return chapterFileHTML.existsSync() ? chapterFileHTML.uri : null;
+  }
+
+  Uri getPdfAttachment(LNChapter chapter) {
+    final chapterFilePDF = File(chapterDir.path + '/${chapter.index}.pdf');
+    return chapterFilePDF.existsSync() ? chapterFilePDF.uri : null;
+  }
+
+  List<int> getHtmlBytes(LNChapter chapter) {
+    final chapterFileHTML = File(chapterDir.path + '/${chapter.index}.html');
+    return chapterFileHTML.existsSync() ? chapterFileHTML.readAsBytesSync() : null;
+  }
+
+  List<int> getPdfBytes(LNChapter chapter) {
+    final chapterFilePDF = File(chapterDir.path + '/${chapter.index}.pdf');
+    return chapterFilePDF.existsSync() ? chapterFilePDF.readAsBytesSync() : null;
+  }
 }
