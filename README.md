@@ -1,13 +1,11 @@
 # LNReader
 
-[![](https://img.shields.io/badge/-F--Droid-a4c639.svg?logo=Android&labelColor=7A7A7A&logoColor=white)](#)
 [![](https://img.shields.io/badge/-Play%20Store-ef6c00.svg?logo=Google%20Play&labelColor=7A7A7A&logoColor=white)](https://play.google.com/store/apps/details?id=me.sedlar.ln_reader)
-[![](https://img.shields.io/badge/-App%20Store-blue.svg?logo=Apple&labelColor=7A7A7A&logoColor=white)](https://github.com/TSedlar/LNReader/issues/8)
+[![](https://img.shields.io/badge/-iOS%20IPA-blue.svg?logo=Apple&labelColor=7A7A7A&logoColor=white)](https://sedlar.me/lnreader/ios-download.html)
 [![](https://img.shields.io/badge/-Donate-orange.svg?logo=Patreon&labelColor=7A7A7A)](https://www.patreon.com/bePatron?c=954360)
 [![](https://img.shields.io/badge/-Donate-blue.svg?logo=Paypal&labelColor=7A7A7A)](https://paypal.me/TSedlar)
 
 <img src="assets/images/release/android/feature_graphic.png" width="300" />
-
 
 Works on both iOS and Android thanks to [Flutter](https://flutter.dev/)
 
@@ -43,6 +41,15 @@ Works on both iOS and Android thanks to [Flutter](https://flutter.dev/)
 
 ### Indian
 - [Neu Manga](https://neumanga.tv/)
+
+## Release roadmap
+
+- I plan to release this on the amazon store
+  - It is currently under review
+- I plan to release this on F-Droid
+  - I have a merge request [open](https://gitlab.com/fdroid/fdroiddata/merge_requests/4970)
+- I would like to release this on the appstore instead of providing a self-signed IPA
+  - Apple does not see thie application as up to their standards (see [here](https://github.com/TSedlar/LNReader/issues/8))
 
 ## Open Source
 
