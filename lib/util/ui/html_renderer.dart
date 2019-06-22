@@ -2,7 +2,6 @@ import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/rendering.dart';
 import 'package:html/parser.dart';
 import 'package:html/dom.dart' hide Text;
-import 'package:ln_reader/util/net/article_parser.dart';
 
 import '../string_tool.dart';
 
