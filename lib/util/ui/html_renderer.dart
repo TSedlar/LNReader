@@ -236,9 +236,7 @@ class HtmlRenderer {
       return [];
     }
 
-    final article = ArticleParser.getArticleElement(document);
-
-    article.nodes.forEach((node) {
+    document.body.nodes.forEach((node) {
       _visitRecursive(node, (n) {
         mappings.add(defaultNodeMapper(n));
       });

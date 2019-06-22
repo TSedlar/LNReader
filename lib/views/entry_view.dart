@@ -365,6 +365,20 @@ class _EntryView extends State<EntryView> {
     setState(() => processingAction = false);
   }
 
+  _exportChapters(List<int> chapters) async {
+    final Map<String, List<int>> fileBytes = {};
+    for (final chIdx in chapters) {
+      final chapter = entry.chapters.firstWhere((ch) => ch.index == chIdx);
+      final name = widget.preview.name + ' - ' + chapter.title + '.txt';
+      final rawContent = await widget.preview.getChapterContent(chapter);
+      final content = widget.preview.source.makeReaderContent(rawContent);
+      final txtData = HtmlRenderer.parseHtmlSegments(content).join('\n');
+      final bytes = utf8.encode(txtData);
+      fileBytes[name] = bytes;
+    };
+    await Share.files('Export Chapter(s)', fileBytes, 'text/plain');
+  }
+
   Widget _makeChapterCard(LNChapter chapter, {String title, String subtitle}) {
     final nextChapter = widget.preview.lastRead.seen
         ? (widget.preview.lastRead.val.nearCompletion()
@@ -511,11 +525,7 @@ class _EntryView extends State<EntryView> {
                             Share.text('Share Chapter Link', chapter.link, 'text/plain');
                           } else if (action == 'export') {
                             await _downloadChapters([chapter.index]);
-                            final content = await widget.preview.getChapterContent(chapter);
-                            final name = widget.preview.name + ' - ' + chapter.title + '.txt';
-                            final txtData = HtmlRenderer.parseHtmlSegments(content).join('\n');
-                            final bytes = utf8.encode(txtData);
-                            await Share.file('Export Chapter', name, bytes, 'text/plain');
+                            await _exportChapters([chapter.index]);
                           }
                         },
                       ),
@@ -687,6 +697,12 @@ class _EntryView extends State<EntryView> {
                                         value: 'download',
                                         child: Text('Download'),
                                       ),
+                                globals.offline.val
+                                    ? null
+                                    : PopupMenuItem(
+                                        value: 'export',
+                                        child: Text('Export'),
+                                      ),
                                 PopupMenuItem(
                                   value: 'select_all',
                                   child: Text('Select all'),
@@ -714,6 +730,10 @@ class _EntryView extends State<EntryView> {
                               });
                             } else if (action == 'download') {
                               _downloadChapters(selectedChapters.toList());
+                              setState(() => selectedChapters.clear());
+                            } else if (action == 'export') {
+                              await _downloadChapters(selectedChapters.toList());
+                              await _exportChapters(selectedChapters.toList());
                               setState(() => selectedChapters.clear());
                             } else if (action == 'select_all') {
                               setState(() {
