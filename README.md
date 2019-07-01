@@ -1,6 +1,6 @@
 # LNReader
 
-[![](https://img.shields.io/badge/-Android%20APK-ef6c00.svg?logo=Android&labelColor=7A7A7A&logoColor=white)](https://sedlar.me/lnreader/android-download.html)
+[![](https://img.shields.io/badge/-Android%20APK-green.svg?logo=Android&labelColor=7A7A7A&logoColor=white)](https://sedlar.me/lnreader/android-download.html)
 [![](https://img.shields.io/badge/-iOS%20IPA-blue.svg?logo=Apple&labelColor=7A7A7A&logoColor=white)](https://sedlar.me/lnreader/ios-download.html)
 [![](https://img.shields.io/badge/-XDA%20Labs-ef6c00.svg?logo=Android&labelColor=7A7A7A&logoColor=white)](https://labs.xda-developers.com/store/app/me.sedlar.ln_reader)
 [![](https://img.shields.io/badge/-Donate-orange.svg?logo=Patreon&labelColor=7A7A7A)](https://www.patreon.com/bePatron?c=954360)
